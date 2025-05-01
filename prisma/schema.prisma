@@ -1,0 +1,83 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id       Int    @id @default(autoincrement())
+  name     String
+  email    String @unique
+  password String
+  createdAt DateTime @default(now())
+}
+
+model Drainage {
+  id           Int      @id @default(autoincrement())
+  date         DateTime @default(now())
+  hoursWorked  Float
+  totalSalary  Float
+}
+
+model Energy {
+  id         Int      @id @default(autoincrement())
+  date       DateTime @default(now())
+  amountPaid Float
+  comment    String
+}
+
+model Fertilizer {
+  id             Int      @id @default(autoincrement())
+  date           DateTime @default(now())
+  fertilizerType String
+  machineCount   String
+  tonAmount      Float
+  comment        String
+}
+
+model Food {
+  id       Int      @id @default(autoincrement())
+  date     DateTime @default(now())
+  shopName String
+  price    Float
+}
+
+model Oil {
+  id      Int      @id @default(autoincrement())
+  date    DateTime @default(now())
+  price   Float
+  comment String
+}
+
+model Remont {
+  id      Int      @id @default(autoincrement())
+  date    DateTime @default(now())
+  price   Float
+  comment String
+}
+
+model Tax {
+  id         Int      @id @default(autoincrement())
+  date       DateTime @default(now())
+  amountPaid Float
+  comment    String
+}
+
+model Transport {
+  id            Int      @id @default(autoincrement())
+  date          DateTime @default(now())
+  transportType String
+  comment       String
+}
+
+model Worker {
+  id           Int      @id @default(autoincrement())
+  date         DateTime @default(now())
+  workerCount  Int
+  salaryPerOne Float
+  totalSalary  Float?
+  comment      String
+}

@@ -1,26 +1,74 @@
-import { Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { CreateEnergyDto } from './dto/create-energy.dto';
 import { UpdateEnergyDto } from './dto/update-energy.dto';
+import { PrismaService } from 'src/prisma/prisma.service';
 
 @Injectable()
 export class EnergyService {
-  create(createEnergyDto: CreateEnergyDto) {
-    return 'This action adds a new energy';
+  constructor(private readonly prisma: PrismaService) {}
+
+  async create(createEnergyDto: CreateEnergyDto) {
+    try {
+      const newEnergy = await this.prisma.energy.create({
+        data: createEnergyDto,
+      });
+
+      return { newEnergy };
+    } catch (error) {
+      throw new BadRequestException(error.message);
+    }
   }
 
-  findAll() {
-    return `This action returns all energy`;
+  async findAll() {
+    try {
+      const energy = await this.prisma.energy.findMany();
+
+      return energy;
+    } catch (error) {
+      throw new BadRequestException(error.message);
+    }
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} energy`;
+  async findOne(id: number) {
+    try {
+      const energy = await this.prisma.energy.findFirst({ where: { id } });
+      if (!energy) throw new NotFoundException('Energy not found');
+
+      return { energy };
+    } catch (error) {
+      throw new BadRequestException(error.message);
+    }
   }
 
-  update(id: number, updateEnergyDto: UpdateEnergyDto) {
-    return `This action updates a #${id} energy`;
+  async update(id: number, updateEnergyDto: UpdateEnergyDto) {
+    try {
+      const energy = await this.prisma.energy.findFirst({ where: { id } });
+      if (!energy) throw new NotFoundException('Energy not found');
+
+      const newEnergy = await this.prisma.energy.update({
+        data: updateEnergyDto,
+        where: { id },
+      });
+
+      return { newEnergy };
+    } catch (error) {
+      throw new BadRequestException(error.message);
+    }
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} energy`;
+  async remove(id: number) {
+    try {
+      const energy = await this.prisma.energy.findFirst({ where: { id } });
+      if (!energy) throw new NotFoundException('Energy not found');
+
+      const deletedEnergy = await this.prisma.energy.delete({ where: { id } });
+      return { message: 'Energy is successfully deleted', data: deletedEnergy };
+    } catch (error) {
+      throw new BadRequestException(error.message);
+    }
   }
 }

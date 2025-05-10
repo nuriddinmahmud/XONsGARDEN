@@ -12,6 +12,5 @@ export class RegisterAuthDto {
 
   @ApiProperty({ example: 'Secret123' })
   @IsString()
-  @MinLength(6)
   password: string;
 }

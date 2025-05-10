@@ -1,4 +1,10 @@
-import { Injectable, ConflictException, UnauthorizedException } from '@nestjs/common';
+import {
+  Injectable,
+  ConflictException,
+  UnauthorizedException,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { JwtService } from '@nestjs/jwt';
 import { RegisterAuthDto } from './dto/register-auth.dto';
@@ -17,12 +23,13 @@ export class AuthService {
     const user = await this.prisma.user.create({
       data: { name: dto.name, email: dto.email, password: hashed },
     });
-
-    return this.generateToken(user.id, user.email);
+    return {message: 'enangdi emgir boldi yaxshi', user};
   }
 
   async login(dto: LoginAuthDto) {
-    const user = await this.prisma.user.findUnique({ where: { email: dto.email } });
+    const user = await this.prisma.user.findUnique({
+      where: { email: dto.email },
+    });
     if (!user) throw new UnauthorizedException('User not found');
 
     const isMatch = await bcrypt.compare(dto.password, user.password);
@@ -39,5 +46,22 @@ export class AuthService {
 
   async getProfile(user: any) {
     return user;
+  }
+
+  async getAllUsers() {
+   try {
+     const users = await this.prisma.user.findMany()
+     return users
+   } catch (error) {
+    throw new BadRequestException(error.message)
+   }
+  }
+
+  async deleteUserById(id: number) {
+    const user = await this.prisma.user.findUnique({ where: { id } });
+    if (!user) throw new NotFoundException('User not found');
+
+    await this.prisma.user.delete({ where: { id } });
+    return { message: 'User deleted successfully' };
   }
 }

@@ -5,8 +5,14 @@ import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
-  const allowedOrigins = ['http://localhost:5173', 'http://localhost:5000'];
+  // ✅ Ruxsat berilgan CORS manzillar
+  const allowedOrigins = [
+    'http://localhost:5173',   // frontend (Vite, React)
+    'http://localhost:5000',   // Swagger (lokal)
+    'http://127.0.0.1:5000',   // Swagger (alternativ IP)
+  ];
 
+  // ✅ CORS konfiguratsiyasi
   app.enableCors({
     origin: (origin, callback) => {
       if (!origin || allowedOrigins.includes(origin)) {
@@ -18,6 +24,7 @@ async function bootstrap() {
     credentials: true,
   });
 
+  // ✅ Swagger sozlamalari
   const config = new DocumentBuilder()
     .setTitle("XON's Garden API")
     .setDescription('Auto-generated Swagger documentation')
@@ -28,6 +35,7 @@ async function bootstrap() {
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('xon', app, document);
 
+  // ✅ Serverni ishga tushurish (port 5000)
   await app.listen(5000);
 }
 bootstrap();

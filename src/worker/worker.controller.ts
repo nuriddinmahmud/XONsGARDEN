@@ -7,11 +7,13 @@ import {
   Param,
   Delete,
   ParseIntPipe,
+  Query,
 } from '@nestjs/common';
 import { WorkerService } from './worker.service';
 import { CreateWorkerDto } from './dto/create-worker.dto';
 import { UpdateWorkerDto } from './dto/update-worker.dto';
-import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
+import { PaginationQueryDto } from './dto/pagination-query.dto';
+import { ApiTags, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
 
 @ApiTags('Worker')
 @ApiBearerAuth()
@@ -25,8 +27,10 @@ export class WorkerController {
   }
 
   @Get()
-  findAll() {
-    return this.service.findAll();
+  @ApiQuery({ name: 'limit', required: false })
+  @ApiQuery({ name: 'page', required: false })
+  findAll(@Query() query: PaginationQueryDto) {
+    return this.service.findAll(query);
   }
 
   @Get(':id')

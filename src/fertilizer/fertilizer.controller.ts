@@ -7,11 +7,13 @@ import {
   Param,
   Delete,
   ParseIntPipe,
+  Query,
 } from '@nestjs/common';
 import { FertilizerService } from './fertilizer.service';
 import { CreateFertilizerDto } from './dto/create-fertilizer.dto';
 import { UpdateFertilizerDto } from './dto/update-fertilizer.dto';
-import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
+import { PaginationQueryDto } from './dto/pagination-query.dto';
+import { ApiTags, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
 
 @ApiTags('Fertilizer')
 @ApiBearerAuth()
@@ -25,8 +27,9 @@ export class FertilizerController {
   }
 
   @Get()
-  findAll() {
-    return this.service.findAll();
+  @ApiQuery({ name: 'page', required: false })
+  findAll(@Query() query: PaginationQueryDto) {
+    return this.service.findAll(query);
   }
 
   @Get(':id')

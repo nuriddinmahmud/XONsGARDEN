@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { CreateFertilizerDto } from './dto/create-fertilizer.dto';
 import { UpdateFertilizerDto } from './dto/update-fertilizer.dto';
+import { PaginationQueryDto } from './dto/pagination-query.dto';
 
 @Injectable()
 export class FertilizerService {
@@ -11,8 +12,26 @@ export class FertilizerService {
     return this.prisma.fertilizer.create({ data: dto });
   }
 
-  findAll() {
-    return this.prisma.fertilizer.findMany({ orderBy: { date: 'desc' } });
+  async findAll(query: PaginationQueryDto) {
+    const page = query.page ?? 1;
+    const take = 20;
+    const skip = (page - 1) * take;
+
+    const [data, total] = await Promise.all([
+      this.prisma.fertilizer.findMany({
+        take,
+        skip,
+        orderBy: { date: 'desc' },
+      }),
+      this.prisma.fertilizer.count(),
+    ]);
+
+    return {
+      data,
+      total,
+      page,
+      lastPage: Math.ceil(total / take),
+    };
   }
 
   async findOne(id: number) {

@@ -3,24 +3,21 @@ import { AppModule } from './app.module';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import * as dotenv from 'dotenv';
 
-dotenv.config(); // .env faylni yuklaydi
+dotenv.config();
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
-  // ✅ Kengaytirilgan CORS ro‘yxati
+  // 📌 Ruxsat berilgan originlar
   const allowedOrigins = [
-    'http://localhost:5173',
-    'http://localhost:3000',
-    'http://127.0.0.1:3000',
-    'http://13.49.137.12',
-    'http://13.49.137.12:3000',
-    'https://13.49.137.12',
+    'http://localhost:5173', // Vite
+    'http://localhost:5174', // boshqa frontend port
+    'https://13.49.137.12',  // server IP (SSL bilan)
   ];
 
   app.enableCors({
     origin: (origin, callback) => {
-      if (!origin || allowedOrigins.some(o => origin.startsWith(o))) {
+      if (!origin || allowedOrigins.includes(origin)) {
         callback(null, true);
       } else {
         console.error('❌ Blocked by CORS:', origin);
@@ -28,9 +25,9 @@ async function bootstrap() {
       }
     },
     credentials: true,
-  });
+   });
 
-  // ✅ Swagger konfiguratsiyasi
+  // 📘 Swagger konfiguratsiyasi
   const config = new DocumentBuilder()
     .setTitle("XON's Garden API")
     .setDescription('Auto-generated Swagger documentation')
@@ -41,10 +38,10 @@ async function bootstrap() {
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('xon', app, document);
 
-  // ✅ Portni .env dan o‘qish (fallback: 3000)
-  const port = process.env.PORT || 3000;
-  await app.listen(port);
-  console.log(`🚀 Server running on port ${port}`);
+  const PORT = process.env.PORT || 3000;
+  await app.listen(PORT);
+  console.log(`🚀 Server running on port ${PORT}`);
 }
+
 bootstrap();
 

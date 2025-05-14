@@ -7,11 +7,13 @@ import {
   Param,
   Delete,
   ParseIntPipe,
+  Query,
 } from '@nestjs/common';
 import { DrainageService } from './drainage.service';
 import { CreateDrainageDto } from './dto/create-drainage.dto';
 import { UpdateDrainageDto } from './dto/update-drainage.dto';
-import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
+import { ApiTags, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
+import { PaginationDto } from './dto/pagination-query.dto';
 
 @ApiTags('Drainage')
 @ApiBearerAuth()
@@ -25,8 +27,13 @@ export class DrainageController {
   }
 
   @Get()
-  findAll() {
-    return this.service.findAll();
+  @ApiQuery({ name: 'page', required: false })
+  @ApiQuery({ name: 'limit', required: false })
+  @ApiQuery({ name: 'search', required: false })
+  @ApiQuery({ name: 'sortBy', required: false })
+  @ApiQuery({ name: 'sortOrder', required: false, enum: ['asc', 'desc'] })
+  findAll(@Query() query: PaginationDto) {
+    return this.service.findAll(query);
   }
 
   @Get(':id')

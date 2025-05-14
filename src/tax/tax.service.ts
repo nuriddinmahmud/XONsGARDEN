@@ -1,7 +1,12 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { CreateTaxDto } from './dto/create-tax.dto';
 import { UpdateTaxDto } from './dto/update-tax.dto';
+import { PaginationDto } from './dto/pagination-query.dto';
 
 @Injectable()
 export class TaxService {
@@ -11,8 +16,39 @@ export class TaxService {
     return this.prisma.tax.create({ data: dto });
   }
 
-  findAll() {
-    return this.prisma.tax.findMany({ orderBy: { date: 'desc' } });
+  async findAll(query: PaginationDto) {
+    const {
+      page = 1,
+      limit = 20,
+      sortBy = 'date',
+      sortOrder = 'desc',
+    } = query;
+
+    const allowedSortFields = ['date', 'amountPaid', 'comment'];
+    if (!allowedSortFields.includes(sortBy)) {
+      throw new BadRequestException(`Invalid sortBy field: ${sortBy}`);
+    }
+
+    const skip = (page - 1) * limit;
+
+    const [data, total] = await this.prisma.$transaction([
+      this.prisma.tax.findMany({
+        skip,
+        take: limit,
+        orderBy: {
+          [sortBy]: sortOrder,
+        },
+      }),
+      this.prisma.tax.count(),
+    ]);
+
+    return {
+      data,
+      total,
+      page,
+      limit,
+      lastPage: Math.ceil(total / limit),
+    };
   }
 
   async findOne(id: number) {

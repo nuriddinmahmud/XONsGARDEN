@@ -1,7 +1,12 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { CreateTransportDto } from './dto/create-transport.dto';
 import { UpdateTransportDto } from './dto/update-transport.dto';
+import { PaginationDto } from './dto/pagination-query.dto';
 
 @Injectable()
 export class TransportService {
@@ -11,8 +16,39 @@ export class TransportService {
     return this.prisma.transport.create({ data: dto });
   }
 
-  findAll() {
-    return this.prisma.transport.findMany({ orderBy: { date: 'desc' } });
+  async findAll(query: PaginationDto) {
+    const {
+      page = 1,
+      limit = 20,
+      sortBy = 'date',
+      sortOrder = 'desc',
+    } = query;
+
+    const allowedSortFields = ['date', 'transportType', 'comment'];
+    if (!allowedSortFields.includes(sortBy)) {
+      throw new BadRequestException(`Invalid sortBy field: ${sortBy}`);
+    }
+
+    const skip = (page - 1) * limit;
+
+    const [data, total] = await this.prisma.$transaction([
+      this.prisma.transport.findMany({
+        skip,
+        take: limit,
+        orderBy: {
+          [sortBy]: sortOrder,
+        },
+      }),
+      this.prisma.transport.count(),
+    ]);
+
+    return {
+      data,
+      total,
+      page,
+      limit,
+      lastPage: Math.ceil(total / limit),
+    };
   }
 
   async findOne(id: number) {

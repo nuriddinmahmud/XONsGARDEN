@@ -7,11 +7,13 @@ import {
   Param,
   Delete,
   ParseIntPipe,
+  Query,
 } from '@nestjs/common';
 import { OilService } from './oil.service';
 import { CreateOilDto } from './dto/create-oil.dto';
 import { UpdateOilDto } from './dto/update-oil.dto';
-import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
+import { ApiTags, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
+import { PaginationDto } from './dto/pagination-query.dto';
 
 @ApiTags('Oil')
 @ApiBearerAuth()
@@ -25,8 +27,12 @@ export class OilController {
   }
 
   @Get()
-  findAll() {
-    return this.service.findAll();
+  @ApiQuery({ name: 'page', required: false })
+  @ApiQuery({ name: 'limit', required: false })
+  @ApiQuery({ name: 'sortBy', required: false })
+  @ApiQuery({ name: 'sortOrder', required: false, enum: ['asc', 'desc'] })
+  findAll(@Query() query: PaginationDto) {
+    return this.service.findAll(query);
   }
 
   @Get(':id')

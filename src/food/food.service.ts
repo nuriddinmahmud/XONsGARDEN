@@ -1,7 +1,12 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { CreateFoodDto } from './dto/create-food.dto';
 import { UpdateFoodDto } from './dto/update-food.dto';
+import { PaginationDto } from './dto/pagination-query.dto';
 
 @Injectable()
 export class FoodService {
@@ -11,8 +16,39 @@ export class FoodService {
     return this.prisma.food.create({ data: dto });
   }
 
-  findAll() {
-    return this.prisma.food.findMany({ orderBy: { date: 'desc' } });
+  async findAll(query: PaginationDto) {
+    const {
+      page = 1,
+      limit = 20,
+      sortBy = 'date',
+      sortOrder = 'desc',
+    } = query;
+
+    const allowedSortFields = ['date', 'shopName', 'price'];
+    if (sortBy && !allowedSortFields.includes(sortBy)) {
+      throw new BadRequestException(`Invalid sortBy field: ${sortBy}`);
+    }
+
+    const skip = (page - 1) * limit;
+
+    const [data, total] = await this.prisma.$transaction([
+      this.prisma.food.findMany({
+        skip,
+        take: limit,
+        orderBy: {
+          [sortBy]: sortOrder,
+        },
+      }),
+      this.prisma.food.count(),
+    ]);
+
+    return {
+      data,
+      total,
+      page,
+      limit,
+      lastPage: Math.ceil(total / limit),
+    };
   }
 
   async findOne(id: number) {

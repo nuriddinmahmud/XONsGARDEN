@@ -1,7 +1,12 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { CreateRemontDto } from './dto/create-remont.dto';
 import { UpdateRemontDto } from './dto/update-remont.dto';
+import { PaginationDto } from './dto/pagination-query.dto';
 
 @Injectable()
 export class RemontService {
@@ -11,8 +16,39 @@ export class RemontService {
     return this.prisma.remont.create({ data: dto });
   }
 
-  findAll() {
-    return this.prisma.remont.findMany({ orderBy: { date: 'desc' } });
+  async findAll(query: PaginationDto) {
+    const {
+      page = 1,
+      limit = 20,
+      sortBy = 'date',
+      sortOrder = 'desc',
+    } = query;
+
+    const allowedSortFields = ['date', 'price', 'comment'];
+    if (!allowedSortFields.includes(sortBy)) {
+      throw new BadRequestException(`Invalid sortBy field: ${sortBy}`);
+    }
+
+    const skip = (page - 1) * limit;
+
+    const [data, total] = await this.prisma.$transaction([
+      this.prisma.remont.findMany({
+        skip,
+        take: limit,
+        orderBy: {
+          [sortBy]: sortOrder,
+        },
+      }),
+      this.prisma.remont.count(),
+    ]);
+
+    return {
+      data,
+      total,
+      page,
+      limit,
+      lastPage: Math.ceil(total / limit),
+    };
   }
 
   async findOne(id: number) {

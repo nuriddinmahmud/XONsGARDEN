@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { CreateDrainageDto } from './dto/create-drainage.dto';
 import { UpdateDrainageDto } from './dto/update-drainage.dto';
+import { PaginationDto } from './dto/pagination-query.dto';
 
 @Injectable()
 export class DrainageService {
@@ -11,9 +12,38 @@ export class DrainageService {
     return this.prisma.drainage.create({ data: dto });
   }
 
-  findAll() {
-    return this.prisma.drainage.findMany({ orderBy: { date: 'desc' } });
-  }
+
+async findAll(query: PaginationDto) {
+  const {
+    page = 1,
+    limit = 10,
+    sortBy = 'date',
+    sortOrder = 'desc',
+  } = query;
+
+  const skip = (page - 1) * limit;
+
+  const [data, total] = await this.prisma.$transaction([
+    this.prisma.drainage.findMany({
+      skip,
+      take: limit,
+      orderBy: {
+        [sortBy]: sortOrder,
+      },
+    }),
+    this.prisma.drainage.count(),
+  ]);
+
+  return {
+    data,
+    total,
+    page,
+    limit,
+    lastPage: Math.ceil(total / limit),
+  };
+}
+
+
 
   async findOne(id: number) {
     const drainage = await this.prisma.drainage.findUnique({ where: { id } });

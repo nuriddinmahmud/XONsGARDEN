@@ -1,6 +1,6 @@
 import { EntityPageShell } from '../components/EntityPageShell'
-import { workersConfig } from '../data/entityConfigs'
+import { entityConfigs } from '../data/entities'
 
 export function WorkersPage() {
-  return <EntityPageShell config={workersConfig} />
+  return <EntityPageShell config={entityConfigs.workers} />
 }

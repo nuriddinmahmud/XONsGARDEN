@@ -1,7 +1,6 @@
 import { Eye, EyeOff, Leaf, LockKeyhole, Mail } from 'lucide-react'
 import { useState, type FormEvent } from 'react'
 import { Navigate, useNavigate } from 'react-router-dom'
-import { STATIC_ADMIN } from '../constants/auth'
 import { useAuth } from '../context/AuthContext'
 import { useToast } from '../context/ToastContext'
 
@@ -9,8 +8,8 @@ export function LoginPage() {
   const { authState, login } = useAuth()
   const { showToast } = useToast()
   const navigate = useNavigate()
-  const [email, setEmail] = useState(STATIC_ADMIN.email)
-  const [password, setPassword] = useState(STATIC_ADMIN.password)
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('')
 
@@ -46,21 +45,18 @@ export function LoginPage() {
         <section className="hidden rounded-[36px] border border-white/70 bg-slate-950 p-10 text-white shadow-[0_35px_90px_-45px_rgba(15,23,42,0.85)] lg:block">
           <div className="inline-flex items-center gap-3 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm text-emerald-200">
             <Leaf className="h-4 w-4" />
-            XON's Garden premium admin panel
+            XON's Garden
           </div>
           <h1 className="mt-8 max-w-xl text-5xl font-semibold leading-tight tracking-tight">
-            Bog' va ferma xarajatlarini bitta zamonaviy boshqaruv markazida kuzating.
+            Bog' xarajatlari nazorati
           </h1>
-          <p className="mt-6 max-w-2xl text-base leading-8 text-slate-300">
-            Ishchilar, oziq-ovqat, o'g'it, transport, energiya, ta'mirlash, soliq va drenaj ishlarini real dashboard hissi bilan nazorat qiling.
-          </p>
 
           <div className="mt-10 grid gap-4 sm:grid-cols-2">
             {[
-              "Har bir bo'lim uchun alohida CRUD boshqaruvi",
-              "localStorage asosida to'liq frontend persistensiya",
-              'Hisobotlar, chartlar va oyma-oy trend tahlili',
-              'Mobil, planshet va desktop uchun moslashuvchan UI',
+              'CRUD',
+              'localStorage',
+              'Hisobotlar',
+              'Responsive',
             ].map((item) => (
               <div
                 className="rounded-3xl border border-white/10 bg-white/5 p-4 text-sm leading-6 text-slate-200"
@@ -82,14 +78,10 @@ export function LoginPage() {
                 Xush kelibsiz
               </p>
               <h2 className="mt-1 text-3xl font-semibold tracking-tight text-slate-950">
-                Admin hisobiga kirish
+                Kirish
               </h2>
             </div>
           </div>
-
-          <p className="mt-5 text-sm leading-7 text-slate-500">
-            Tizim frontend-only ishlaydi. Sessiya localStorage orqali saqlanadi va yangilanganda yo'qolmaydi.
-          </p>
 
           <form className="mt-8 space-y-5" onSubmit={handleSubmit}>
             <label className="block">
@@ -135,15 +127,9 @@ export function LoginPage() {
               className="inline-flex h-14 w-full items-center justify-center rounded-2xl bg-slate-950 text-sm font-semibold text-white transition hover:bg-emerald-700"
               type="submit"
             >
-              Dashboard'ga kirish
+              Kirish
             </button>
           </form>
-
-          <div className="mt-6 rounded-3xl bg-slate-50 p-4 text-sm text-slate-600">
-            <p className="font-semibold text-slate-900">Demo login</p>
-            <p className="mt-2">Email: {STATIC_ADMIN.email}</p>
-            <p>Parol: {STATIC_ADMIN.password}</p>
-          </div>
         </section>
       </div>
     </div>

@@ -2,7 +2,7 @@ import type { ReactNode } from 'react'
 
 interface ChartCardProps {
   title: string
-  description: string
+  description?: string
   action?: ReactNode
   children: ReactNode
 }
@@ -13,7 +13,7 @@ export function ChartCard({ title, description, action, children }: ChartCardPro
       <div className="mb-5 flex items-start justify-between gap-4">
         <div>
           <h3 className="text-lg font-semibold text-slate-950">{title}</h3>
-          <p className="mt-1 text-sm leading-6 text-slate-500">{description}</p>
+          {description ? <p className="mt-1 text-sm leading-6 text-slate-500">{description}</p> : null}
         </div>
         {action}
       </div>

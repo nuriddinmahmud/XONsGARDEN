@@ -4,7 +4,7 @@ import { cn } from '../utils/helpers'
 interface StatCardProps {
   title: string
   value: string
-  description: string
+  description?: string
   icon: LucideIcon
   accent?: 'emerald' | 'blue' | 'amber' | 'slate' | 'rose'
 }
@@ -30,7 +30,7 @@ export function StatCard({
         <div>
           <p className="text-sm font-medium text-slate-500">{title}</p>
           <p className="mt-3 text-3xl font-semibold tracking-tight text-slate-950">{value}</p>
-          <p className="mt-2 text-sm leading-6 text-slate-500">{description}</p>
+          {description ? <p className="mt-2 text-sm leading-6 text-slate-500">{description}</p> : null}
         </div>
 
         <div

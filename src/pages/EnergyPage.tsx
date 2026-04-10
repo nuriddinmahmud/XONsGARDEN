@@ -1,6 +1,6 @@
 import { EntityPageShell } from '../components/EntityPageShell'
-import { energiesConfig } from '../data/entityConfigs'
+import { entityConfigs } from '../data/entities'
 
 export function EnergyPage() {
-  return <EntityPageShell config={energiesConfig} />
+  return <EntityPageShell config={entityConfigs.energy} />
 }

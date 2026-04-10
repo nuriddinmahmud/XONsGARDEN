@@ -20,13 +20,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       authState,
       login: (email, password) => {
         const isValid =
-          email.trim().toLowerCase() === STATIC_ADMIN.email &&
+          email.trim().toLowerCase() === STATIC_ADMIN.email.toLowerCase() &&
           password === STATIC_ADMIN.password
 
         if (!isValid) {
           return {
             success: false,
-            message: "Email yoki parol noto'g'ri. Demo login ma'lumotlaridan foydalaning.",
+            message: "Email yoki parol noto'g'ri. Qayta urinib ko'ring.",
           }
         }
 

@@ -107,7 +107,7 @@ function getDescription(record: EntityRecord) {
     return `${record.hoursWorked} soat drenaj ishlari`
   }
 
-  return record.comment || "Qo'shimcha izoh yo'q"
+  return record.comment || "Izoh yo'q"
 }
 
 export function getCurrentMonthStats(recordsMap: RecordsMap) {

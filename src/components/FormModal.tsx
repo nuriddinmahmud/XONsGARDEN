@@ -5,7 +5,7 @@ import { cn } from '../utils/helpers'
 interface FormModalProps {
   open: boolean
   title: string
-  description: string
+  description?: string
   fields: FormField[]
   values: FormValues
   errors: Record<string, string>
@@ -38,7 +38,7 @@ export function FormModal({
           <div className="flex items-start justify-between gap-4">
             <div>
               <h3 className="text-2xl font-semibold text-slate-950">{title}</h3>
-              <p className="mt-2 text-sm leading-6 text-slate-500">{description}</p>
+              {description ? <p className="mt-2 text-sm leading-6 text-slate-500">{description}</p> : null}
             </div>
             <button
               className="rounded-2xl p-2 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"

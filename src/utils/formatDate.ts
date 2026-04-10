@@ -37,7 +37,3 @@ export function formatMonthLabel(date: string) {
     year: 'numeric',
   }).format(parsed)
 }
-
-export function formatCurrency(amount: number, currencyLabel = "so'm") {
-  return `${new Intl.NumberFormat('uz-UZ').format(Math.round(amount))} ${currencyLabel}`
-}

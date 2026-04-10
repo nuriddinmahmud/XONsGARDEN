@@ -1,73 +1,99 @@
-# React + TypeScript + Vite
+# XON's Garden
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Frontend-only orchard and garden expense management dashboard built with React, TypeScript, webpack, Tailwind CSS, and `localStorage`.
 
-Currently, two official plugins are available:
+## What It Does
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- Protects the admin experience with a simple local demo login
+- Tracks local expense records for:
+  - workers
+  - food
+  - fertilizer
+  - transport
+  - energy
+  - oil
+  - repairs
+  - tax
+  - drainage
+- Stores all data in `localStorage`
+- Seeds demo data on first load
+- Provides dashboard analytics, reports, filtering, settings, and JSON backup/restore
 
-## React Compiler
+## Tech Stack
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- React 19
+- TypeScript
+- React Router
+- Tailwind CSS
+- Recharts
+- Webpack
 
-## Expanding the ESLint configuration
+## Project Structure
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```text
+src/
+  components/      Shared UI building blocks
+  constants/       Navigation, auth, and storage constants
+  context/         Auth and toast state
+  data/
+    entities/      Per-entity CRUD config modules
+    seed.ts        Demo seed data
+  hooks/           localStorage sync hooks
+  layouts/         App shell layout
+  pages/           Routed screens
+  routes/          Router and auth guard
+  types/           Shared TypeScript models
+  utils/           Formatting, calculations, and localStorage helpers
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## Available Scripts
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+npm run dev
+npm run build
+npm run lint
+npm run typecheck
 ```
+
+If PowerShell blocks `npm`, use:
+
+```bash
+npm.cmd run dev
+npm.cmd run build
+npm.cmd run lint
+npm.cmd run typecheck
+```
+
+## localStorage Model
+
+The app intentionally uses browser storage instead of a backend.
+
+Known storage keys:
+
+- `auth`
+- `workers`
+- `foods`
+- `fertilizers`
+- `transports`
+- `energies`
+- `oils`
+- `remonts`
+- `taxes`
+- `drainages`
+- `settings`
+- `users`
+
+## Backup and Restore
+
+Settings page includes:
+
+- JSON export of all app-managed `localStorage` data
+- JSON import with validation and confirmation
+
+This makes the project easy to demo, reset, and move between browsers without introducing a server.
+
+## Notes
+
+- This is a frontend-first local admin tool by design.
+- No backend or API is required for normal use.
+- Demo credentials are defined in `src/constants/auth.ts`.

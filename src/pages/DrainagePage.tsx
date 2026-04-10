@@ -1,6 +1,6 @@
 import { EntityPageShell } from '../components/EntityPageShell'
-import { drainagesConfig } from '../data/entityConfigs'
+import { entityConfigs } from '../data/entities'
 
 export function DrainagePage() {
-  return <EntityPageShell config={drainagesConfig} />
+  return <EntityPageShell config={entityConfigs.drainage} />
 }

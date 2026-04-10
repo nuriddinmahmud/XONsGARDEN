@@ -23,6 +23,7 @@ import { ChartCard } from '../components/ChartCard'
 import { StatCard } from '../components/StatCard'
 import { SummaryCards } from '../components/SummaryCards'
 import { useRecordsMap } from '../hooks/useRecordsMap'
+import { useSettings } from '../hooks/useSettings'
 import {
   categoryMeta,
   getAllTotals,
@@ -34,11 +35,12 @@ import {
   getPreviousMonthTotal,
   getRecentActivities,
 } from '../utils/calculations'
-import { formatCurrency, formatDate, formatShortDate } from '../utils/formatDate'
-import { formatCompactNumber } from '../utils/helpers'
+import { formatDate, formatShortDate } from '../utils/formatDate'
+import { formatCompactMoney, formatMoney } from '../utils/formatMoney'
 
 export function DashboardPage() {
   const recordsMap = useRecordsMap()
+  const { currencyLabel } = useSettings()
 
   const totals = useMemo(() => getAllTotals(recordsMap), [recordsMap])
   const summaries = useMemo(() => getCategorySummaries(recordsMap), [recordsMap])
@@ -64,24 +66,23 @@ export function DashboardPage() {
           <div className="max-w-3xl">
             <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-emerald-100">
               <Sparkles className="h-4 w-4" />
-              Operatsion markaz
+              Dashboard
             </div>
             <h1 className="mt-5 text-3xl font-semibold tracking-tight md:text-5xl">
-              XON's Garden xarajatlar dashboardi
+              Xarajatlar
             </h1>
-            <p className="mt-4 max-w-2xl text-sm leading-7 text-slate-200 md:text-base">
-              Barcha bo'limlardan kelayotgan xarajatlar localStorage asosida bir markazda tahlil qilinadi. Bu panel joriy oy kesimi, kategoriya balanslari va so'nggi yozuvlarni tez ko'rish uchun mo'ljallangan.
-            </p>
           </div>
 
           <div className="grid gap-3 sm:grid-cols-3">
             <div className="rounded-3xl border border-white/10 bg-white/10 px-5 py-4">
               <p className="text-xs uppercase tracking-[0.18em] text-slate-300">Umumiy xarajat</p>
-              <p className="mt-3 text-2xl font-semibold">{formatCompactNumber(totals)}</p>
+              <p className="mt-3 text-2xl font-semibold">{formatCompactMoney(totals, currencyLabel)}</p>
             </div>
             <div className="rounded-3xl border border-white/10 bg-white/10 px-5 py-4">
               <p className="text-xs uppercase tracking-[0.18em] text-slate-300">Joriy oy</p>
-              <p className="mt-3 text-2xl font-semibold">{formatCompactNumber(currentMonth.total)}</p>
+              <p className="mt-3 text-2xl font-semibold">
+                {formatCompactMoney(currentMonth.total, currencyLabel)}
+              </p>
             </div>
             <div className="rounded-3xl border border-white/10 bg-white/10 px-5 py-4">
               <p className="text-xs uppercase tracking-[0.18em] text-slate-300">Eng katta bo'lim</p>
@@ -94,41 +95,34 @@ export function DashboardPage() {
       <div className="grid gap-4 xl:grid-cols-4">
         <StatCard
           accent="emerald"
-          description="Barcha kategoriya yozuvlari bo'yicha yig'ilgan umumiy summa."
           icon={CircleDollarSign}
           title="Umumiy xarajat"
-          value={formatCurrency(totals)}
+          value={formatMoney(totals, currencyLabel)}
         />
         <StatCard
           accent="blue"
-          description={`Joriy oyda ${currentMonth.count} ta yozuv kiritilgan.`}
           icon={CalendarRange}
-          title="Joriy oy statistikasi"
-          value={formatCurrency(currentMonth.total)}
+          title="Joriy oy"
+          value={formatMoney(currentMonth.total, currencyLabel)}
         />
         <StatCard
           accent="amber"
-          description={`Oldingi oyga nisbatan: ${monthDelta}`}
           icon={ArrowUpRight}
-          title="Oylar solishtiruvi"
-          value={formatCurrency(currentMonth.average)}
+          title="Taqqoslash"
+          value={formatMoney(currentMonth.average, currencyLabel)}
         />
         <StatCard
           accent="rose"
-          description="Eng yuqori xarajat qilayotgan kategoriya."
           icon={BadgeDollarSign}
-          title="Lider bo'lim"
+          title="Lider"
           value={highestCategory?.label ?? '-'}
         />
       </div>
 
-      <SummaryCards items={summaries} />
+      <SummaryCards currencyLabel={currencyLabel} items={summaries} />
 
       <div className="grid gap-6 xl:grid-cols-[1.7fr_1fr]">
-        <ChartCard
-          description="Oxirgi olti oy bo'yicha umumiy xarajat trendi."
-          title="Oylik xarajatlar dinamikasi"
-        >
+        <ChartCard title="Oylik dinamika">
           <div className="h-[320px]">
             <ResponsiveContainer height="100%" width="100%">
               <BarChart data={monthlyTrend}>
@@ -140,17 +134,14 @@ export function DashboardPage() {
                   axisLine={false}
                   tickFormatter={(value) => `${Math.round(Number(value) / 1000)}k`}
                 />
-                <Tooltip formatter={(value) => formatCurrency(Number(value))} />
+                <Tooltip formatter={(value) => formatMoney(Number(value), currencyLabel)} />
                 <Bar dataKey="jami" fill="#0f766e" radius={[12, 12, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
         </ChartCard>
 
-        <ChartCard
-          description="Joriy oy ichida qaysi bo'lim qancha ulush olayotgani."
-          title="Kategoriya taqsimoti"
-        >
+        <ChartCard title="Kategoriya ulushi">
           <div className="h-[320px]">
             <ResponsiveContainer height="100%" width="100%">
               <PieChart>
@@ -170,7 +161,7 @@ export function DashboardPage() {
                     />
                   ))}
                 </Pie>
-                <Tooltip formatter={(value) => formatCurrency(Number(value))} />
+                <Tooltip formatter={(value) => formatMoney(Number(value), currencyLabel)} />
               </PieChart>
             </ResponsiveContainer>
           </div>
@@ -178,10 +169,7 @@ export function DashboardPage() {
       </div>
 
       <div className="grid gap-6 xl:grid-cols-[1.25fr_0.95fr]">
-        <ChartCard
-          description="Bo'limlar kesimida jami xarajat summasi va yozuv soni."
-          title="Kategoriya bo'yicha umumiy ko'rinish"
-        >
+        <ChartCard title="Kategoriyalar">
           <div className="space-y-4">
             {summaries
               .sort((a, b) => b.total - a.total)
@@ -198,10 +186,12 @@ export function DashboardPage() {
                       />
                       <div>
                         <p className="text-sm font-semibold text-slate-900">{item.label}</p>
-                        <p className="text-xs text-slate-500">{item.count} ta yozuv</p>
+                        <p className="text-xs text-slate-500">{item.count} ta</p>
                       </div>
                     </div>
-                    <p className="text-sm font-semibold text-slate-900">{formatCurrency(item.total)}</p>
+                    <p className="text-sm font-semibold text-slate-900">
+                      {formatMoney(item.total, currencyLabel)}
+                    </p>
                   </div>
                   <div className="h-2 overflow-hidden rounded-full bg-slate-200">
                     <div
@@ -217,10 +207,7 @@ export function DashboardPage() {
           </div>
         </ChartCard>
 
-        <ChartCard
-          description="Eng so'nggi qo'shilgan yozuvlar tez ko'rish uchun."
-          title="So'nggi faoliyatlar"
-        >
+        <ChartCard title="So'nggi yozuvlar">
           <div className="space-y-4">
             {recentActivities.map((activity) => (
               <div
@@ -243,7 +230,9 @@ export function DashboardPage() {
                   <p className="mt-2 text-sm font-medium text-slate-900">{activity.description}</p>
                   <p className="mt-1 text-xs text-slate-500">{formatDate(activity.date)}</p>
                 </div>
-                <p className="text-sm font-semibold text-slate-900">{formatCurrency(activity.amount)}</p>
+                <p className="text-sm font-semibold text-slate-900">
+                  {formatMoney(activity.amount, currencyLabel)}
+                </p>
               </div>
             ))}
           </div>
@@ -257,30 +246,23 @@ export function DashboardPage() {
               <Layers3 className="h-5 w-5" />
             </div>
             <div>
-              <p className="text-sm font-semibold text-slate-900">Quick insight</p>
-              <p className="text-sm text-slate-500">O'tgan oy bilan taqqoslash</p>
+              <p className="text-sm font-semibold text-slate-900">Taqqoslash</p>
             </div>
           </div>
           <p className="mt-5 text-2xl font-semibold text-slate-950">{monthDelta}</p>
-          <p className="mt-2 text-sm leading-6 text-slate-500">
-            Agar bu qiymat yuqori bo'lsa, transport, o'g'it yoki ishchi xarajatlarini qayta ko'rib chiqing.
-          </p>
         </div>
 
         <div className="rounded-3xl border border-white/70 bg-white/85 p-5 shadow-[0_20px_55px_-35px_rgba(15,23,42,0.35)]">
-          <p className="text-sm font-semibold text-slate-900">Joriy oy lideri</p>
+          <p className="text-sm font-semibold text-slate-900">Lider</p>
           <p className="mt-5 text-2xl font-semibold text-slate-950">{highestCategory?.label}</p>
           <p className="mt-2 text-sm leading-6 text-slate-500">
-            Ushbu kategoriya {highestCategory ? formatCurrency(highestCategory.total) : '-'} bilan eng katta ulushni egallagan.
+            {highestCategory ? formatMoney(highestCategory.total, currencyLabel) : '-'}
           </p>
         </div>
 
         <div className="rounded-3xl border border-white/70 bg-white/85 p-5 shadow-[0_20px_55px_-35px_rgba(15,23,42,0.35)]">
-          <p className="text-sm font-semibold text-slate-900">Yozuv intensivligi</p>
+          <p className="text-sm font-semibold text-slate-900">Yozuvlar</p>
           <p className="mt-5 text-2xl font-semibold text-slate-950">{currentMonth.count} ta</p>
-          <p className="mt-2 text-sm leading-6 text-slate-500">
-            Hozirgi oy davomida tizimga kiritilgan yozuvlar soni. Bu operatsion faollik ko'rsatkichidir.
-          </p>
         </div>
       </div>
     </div>

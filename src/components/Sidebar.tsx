@@ -35,7 +35,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
             </div>
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-700">
-                Admin panel
+                Admin
               </p>
               <h1 className="text-lg font-semibold text-slate-950">{settings.gardenName}</h1>
             </div>
@@ -74,7 +74,9 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
                   </div>
                   <div>
                     <div className="text-sm font-semibold">{item.label}</div>
-                    <div className="mt-1 text-xs leading-5 text-inherit/75">{item.description}</div>
+                    {item.description ? (
+                      <div className="mt-1 text-xs leading-5 text-inherit/75">{item.description}</div>
+                    ) : null}
                   </div>
                 </NavLink>
               )
@@ -83,10 +85,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
         </div>
 
         <div className="rounded-3xl bg-emerald-50 p-4">
-          <p className="text-sm font-semibold text-emerald-900">Bugungi fokus</p>
-          <p className="mt-2 text-sm leading-6 text-emerald-800/80">
-            Xarajatlarni kategoriya bo'yicha nazorat qiling va oy kesimidagi trendlarni kuzating.
-          </p>
+          <p className="text-sm font-semibold text-emerald-900">Xarajatlar</p>
         </div>
       </aside>
     </>

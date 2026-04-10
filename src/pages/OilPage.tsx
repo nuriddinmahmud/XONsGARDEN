@@ -1,6 +1,6 @@
 import { EntityPageShell } from '../components/EntityPageShell'
-import { oilsConfig } from '../data/entityConfigs'
+import { entityConfigs } from '../data/entities'
 
 export function OilPage() {
-  return <EntityPageShell config={oilsConfig} />
+  return <EntityPageShell config={entityConfigs.oil} />
 }

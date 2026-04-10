@@ -18,15 +18,17 @@ import {
 import { ChartCard } from '../components/ChartCard'
 import { SummaryCards } from '../components/SummaryCards'
 import { useRecordsMap } from '../hooks/useRecordsMap'
+import { useSettings } from '../hooks/useSettings'
 import {
   categoryMeta,
   getCategorySummaries,
   getMonthlyTrend,
 } from '../utils/calculations'
-import { formatCurrency } from '../utils/formatDate'
+import { formatMoney } from '../utils/formatMoney'
 
 export function ReportsPage() {
   const recordsMap = useRecordsMap()
+  const { currencyLabel } = useSettings()
   const summaries = useMemo(() => getCategorySummaries(recordsMap), [recordsMap])
   const monthlyTrend = useMemo(() => getMonthlyTrend(recordsMap, 8), [recordsMap])
 
@@ -36,30 +38,24 @@ export function ReportsPage() {
         <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-700">
-              Analytics
+              Hisobotlar
             </p>
             <h1 className="mt-2 text-3xl font-semibold tracking-tight text-slate-950">
-              Hisobotlar va analitika
+              Analitika
             </h1>
-            <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-500">
-              localStorage ma'lumotlari asosida barcha kategoriya bo'yicha xarajat taqsimoti, oylik trendlar va kesimlar shu sahifada hisoblanadi.
-            </p>
           </div>
 
           <div className="inline-flex items-center gap-2 rounded-2xl bg-slate-950 px-4 py-3 text-sm font-semibold text-white">
             <Download className="h-4 w-4" />
-            Frontend hisobot rejimi
+            Hisobot
           </div>
         </div>
       </section>
 
-      <SummaryCards items={summaries} />
+      <SummaryCards currencyLabel={currencyLabel} items={summaries} />
 
       <div className="grid gap-6 xl:grid-cols-[1.35fr_1fr]">
-        <ChartCard
-          description="Kategoriya bo'yicha jami xarajatlar taqqoslanadi."
-          title="Xarajatlar taqsimoti"
-        >
+        <ChartCard title="Xarajatlar">
           <div className="h-[360px]">
             <ResponsiveContainer height="100%" width="100%">
               <BarChart data={summaries}>
@@ -71,7 +67,7 @@ export function ReportsPage() {
                   axisLine={false}
                   tickFormatter={(value) => `${Math.round(Number(value) / 1000)}k`}
                 />
-                <Tooltip formatter={(value) => formatCurrency(Number(value))} />
+                <Tooltip formatter={(value) => formatMoney(Number(value), currencyLabel)} />
                 <Bar dataKey="total" radius={[12, 12, 0, 0]}>
                   {summaries.map((entry) => (
                     <Cell fill={entry.color} key={entry.key} />
@@ -82,10 +78,7 @@ export function ReportsPage() {
           </div>
         </ChartCard>
 
-        <ChartCard
-          description="Har bir bo'limning umumiy ulushi doira ko'rinishida."
-          title="Kategoriya ulushi"
-        >
+        <ChartCard title="Ulush">
           <div className="h-[360px]">
             <ResponsiveContainer height="100%" width="100%">
               <PieChart>
@@ -101,17 +94,14 @@ export function ReportsPage() {
                     <Cell fill={entry.color} key={entry.key} />
                   ))}
                 </Pie>
-                <Tooltip formatter={(value) => formatCurrency(Number(value))} />
+                <Tooltip formatter={(value) => formatMoney(Number(value), currencyLabel)} />
               </PieChart>
             </ResponsiveContainer>
           </div>
         </ChartCard>
       </div>
 
-      <ChartCard
-        description="Oylik xarajatlar trendida jami summa va asosiy bo'limlar birgalikda ko'rsatiladi."
-        title="Oylik trendlar"
-      >
+      <ChartCard title="Trend">
         <div className="h-[380px]">
           <ResponsiveContainer height="100%" width="100%">
             <AreaChart data={monthlyTrend}>
@@ -129,7 +119,7 @@ export function ReportsPage() {
                 axisLine={false}
                 tickFormatter={(value) => `${Math.round(Number(value) / 1000)}k`}
               />
-              <Tooltip formatter={(value) => formatCurrency(Number(value))} />
+              <Tooltip formatter={(value) => formatMoney(Number(value), currencyLabel)} />
               <Legend />
               <Area
                 dataKey="jami"
@@ -156,7 +146,7 @@ export function ReportsPage() {
             <div className="flex items-center justify-between gap-3">
               <div>
                 <p className="text-sm font-semibold text-slate-900">{item.label}</p>
-                <p className="mt-1 text-sm text-slate-500">{item.count} ta yozuv</p>
+                <p className="mt-1 text-sm text-slate-500">{item.count} ta</p>
               </div>
               <div
                 className="flex h-11 w-11 items-center justify-center rounded-2xl text-white"
@@ -165,7 +155,9 @@ export function ReportsPage() {
                 <TrendingUp className="h-4 w-4" />
               </div>
             </div>
-            <p className="mt-5 text-2xl font-semibold text-slate-950">{formatCurrency(item.total)}</p>
+            <p className="mt-5 text-2xl font-semibold text-slate-950">
+              {formatMoney(item.total, currencyLabel)}
+            </p>
           </div>
         ))}
       </div>

@@ -136,7 +136,7 @@ export interface Toast {
 export interface NavItem {
   path: string
   label: string
-  description: string
+  description?: string
   icon: LucideIcon
 }
 
@@ -144,7 +144,11 @@ export interface TableColumn<T> {
   key: string
   label: string
   className?: string
-  render: (row: T) => ReactNode
+  render: (row: T, context: TableRenderContext) => ReactNode
+}
+
+export interface TableRenderContext {
+  currencyLabel: string
 }
 
 export interface SelectOption {
@@ -187,11 +191,11 @@ export interface RecentActivity {
 export interface EntityPageConfig<T extends EntityRecord> {
   storageKey: EntityKey
   title: string
-  description: string
+  description?: string
   addLabel: string
   searchPlaceholder: string
   emptyTitle: string
-  emptyDescription: string
+  emptyDescription?: string
   fields: FormField[]
   columns: TableColumn<T>[]
   getSearchText: (record: T) => string
@@ -199,4 +203,11 @@ export interface EntityPageConfig<T extends EntityRecord> {
   toFormValues: (record: T) => FormValues
   createRecord: (values: FormValues, existingId?: string) => T
   deriveValues?: (values: FormValues) => FormValues
+}
+
+export interface AppStorageBackup {
+  app: 'xons-garden'
+  version: 1
+  exportedAt: string
+  data: Partial<Record<StorageKey, unknown>>
 }

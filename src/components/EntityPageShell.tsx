@@ -2,8 +2,10 @@ import { useEffect, useMemo, useState } from 'react'
 import { Files, PlusCircle } from 'lucide-react'
 import { useToast } from '../context/ToastContext'
 import { useCrudCollection } from '../hooks/useCrudCollection'
+import { useSettings } from '../hooks/useSettings'
 import type { EntityPageConfig, EntityRecord, FormValues } from '../types'
 import { getTodayDate, isValidDateString } from '../utils/helpers'
+import { formatMoney } from '../utils/formatMoney'
 import { ConfirmDialog } from './ConfirmDialog'
 import { DataTable } from './DataTable'
 import { EmptyState } from './EmptyState'
@@ -36,8 +38,13 @@ export function EntityPageShell<T extends EntityRecord>({
 }) {
   const { records, saveRecord, deleteRecord } = useCrudCollection<T>(config.storageKey)
   const { showToast } = useToast()
+  const { currencyLabel } = useSettings()
   const [searchValue, setSearchValue] = useState('')
-  const [dateValue, setDateValue] = useState('')
+  const [dateFromValue, setDateFromValue] = useState('')
+  const [dateToValue, setDateToValue] = useState('')
+  const [sortValue, setSortValue] = useState<'date_desc' | 'date_asc' | 'amount_desc' | 'amount_asc'>(
+    'date_desc',
+  )
   const [loading, setLoading] = useState(true)
   const [modalOpen, setModalOpen] = useState(false)
   const [editingRecord, setEditingRecord] = useState<T | null>(null)
@@ -51,7 +58,7 @@ export function EntityPageShell<T extends EntityRecord>({
   }, [])
 
   const filteredRecords = useMemo(() => {
-    return [...records]
+    const filtered = [...records]
       .filter((record) => {
         const query = searchValue.trim().toLowerCase()
         if (!query) {
@@ -60,13 +67,40 @@ export function EntityPageShell<T extends EntityRecord>({
 
         return config.getSearchText(record).toLowerCase().includes(query)
       })
-      .filter((record) => (dateValue ? record.date === dateValue : true))
-      .sort((a, b) => +new Date(b.date) - +new Date(a.date))
-  }, [config, dateValue, records, searchValue])
+      .filter((record) => (dateFromValue ? record.date >= dateFromValue : true))
+      .filter((record) => (dateToValue ? record.date <= dateToValue : true))
+
+    filtered.sort((a, b) => {
+      if (sortValue === 'date_asc') {
+        return +new Date(a.date) - +new Date(b.date)
+      }
+
+      if (sortValue === 'amount_desc') {
+        return config.getAmount(b) - config.getAmount(a)
+      }
+
+      if (sortValue === 'amount_asc') {
+        return config.getAmount(a) - config.getAmount(b)
+      }
+
+      return +new Date(b.date) - +new Date(a.date)
+    })
+
+    return filtered
+  }, [config, dateFromValue, dateToValue, records, searchValue, sortValue])
 
   const totalAmount = useMemo(
     () => filteredRecords.reduce((sum, record) => sum + config.getAmount(record), 0),
     [config, filteredRecords],
+  )
+  const hasActiveFilters = Boolean(
+    searchValue.trim() || dateFromValue || dateToValue || sortValue !== 'date_desc',
+  )
+  const tableContext = useMemo(
+    () => ({
+      currencyLabel,
+    }),
+    [currencyLabel],
   )
 
   const openCreateModal = () => {
@@ -98,16 +132,23 @@ export function EntityPageShell<T extends EntityRecord>({
       const value = values[field.name]?.trim() ?? ''
 
       if (field.required && !value) {
-        nextErrors[field.name] = "Ushbu maydonni to'ldiring."
+        nextErrors[field.name] = `${field.label} maydonini to'ldiring.`
+        continue
+      }
+
+      if ((field.type === 'text' || field.type === 'textarea') && field.required && value.length > 0 && value.length < 2) {
+        nextErrors[field.name] = `${field.label} kamida 2 ta belgidan iborat bo'lsin.`
         continue
       }
 
       if (field.type === 'number' && value) {
         const numberValue = Number(value)
         if (Number.isNaN(numberValue)) {
-          nextErrors[field.name] = "Raqam to'g'ri kiritilmagan."
-        } else if (numberValue < 0) {
-          nextErrors[field.name] = "Manfiy qiymat kiritib bo'lmaydi."
+          nextErrors[field.name] = `${field.label} uchun to'g'ri raqam kiriting.`
+        } else if (!Number.isFinite(numberValue)) {
+          nextErrors[field.name] = `${field.label} qiymati juda katta.`
+        } else if (field.min !== undefined && numberValue < field.min) {
+          nextErrors[field.name] = `${field.label} kamida ${field.min} bo'lishi kerak.`
         }
       }
 
@@ -125,7 +166,7 @@ export function EntityPageShell<T extends EntityRecord>({
       showToast({
         type: 'error',
         title: "Forma tekshiruvdan o'tmadi",
-        description: "Majburiy maydonlar va son qiymatlarini qayta ko'rib chiqing.",
+        description: "Maydonlarni tekshiring.",
       })
       return
     }
@@ -139,7 +180,7 @@ export function EntityPageShell<T extends EntityRecord>({
     showToast({
       type: 'success',
       title: editingRecord ? 'Yozuv yangilandi' : "Yangi yozuv qo'shildi",
-      description: `${config.title} bo'limi muvaffaqiyatli saqlandi.`,
+      description: 'Saqlandi.',
     })
   }
 
@@ -153,7 +194,7 @@ export function EntityPageShell<T extends EntityRecord>({
     showToast({
       type: 'success',
       title: "Yozuv o'chirildi",
-      description: `${config.title} bo'limidagi tanlangan yozuv olib tashlandi.`,
+      description: "O'chirildi.",
     })
   }
 
@@ -162,13 +203,10 @@ export function EntityPageShell<T extends EntityRecord>({
       <section className="rounded-[32px] border border-white/70 bg-white/80 p-6 shadow-[0_30px_70px_-40px_rgba(15,23,42,0.35)]">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-700">
-              Operatsion bo'lim
-            </p>
-            <h1 className="mt-2 text-3xl font-semibold tracking-tight text-slate-950">
-              {config.title}
-            </h1>
-            <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-500">{config.description}</p>
+            <h1 className="text-3xl font-semibold tracking-tight text-slate-950">{config.title}</h1>
+            {config.description ? (
+              <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-500">{config.description}</p>
+            ) : null}
           </div>
 
           <div className="grid gap-3 sm:grid-cols-2">
@@ -183,7 +221,7 @@ export function EntityPageShell<T extends EntityRecord>({
                 Jami summa
               </p>
               <p className="mt-2 text-2xl font-semibold text-emerald-900">
-                {new Intl.NumberFormat('uz-UZ').format(totalAmount)} so'm
+                {formatMoney(totalAmount, currencyLabel)}
               </p>
             </div>
           </div>
@@ -192,12 +230,25 @@ export function EntityPageShell<T extends EntityRecord>({
 
       <SearchBar
         addLabel={config.addLabel}
-        dateValue={dateValue}
+        dateFromValue={dateFromValue}
+        dateToValue={dateToValue}
+        hasActiveFilters={hasActiveFilters}
         onAdd={openCreateModal}
-        onDateChange={setDateValue}
+        onClearFilters={() => {
+          setSearchValue('')
+          setDateFromValue('')
+          setDateToValue('')
+          setSortValue('date_desc')
+        }}
+        onDateFromChange={setDateFromValue}
+        onDateToChange={setDateToValue}
         onSearchChange={setSearchValue}
+        onSortChange={(value) =>
+          setSortValue(value as 'date_desc' | 'date_asc' | 'amount_desc' | 'amount_asc')
+        }
         placeholder={config.searchPlaceholder}
         searchValue={searchValue}
+        sortValue={sortValue}
       />
 
       {loading ? <div className="grid gap-4">{createLoadingRows()}</div> : null}
@@ -215,6 +266,7 @@ export function EntityPageShell<T extends EntityRecord>({
       {!loading && filteredRecords.length > 0 ? (
         <DataTable
           columns={config.columns}
+          context={tableContext}
           onDelete={(row) => setDeleteTarget(row)}
           onEdit={openEditModal}
           rows={filteredRecords}
@@ -224,18 +276,19 @@ export function EntityPageShell<T extends EntityRecord>({
       {!loading && records.length > 0 && filteredRecords.length === 0 ? (
         <EmptyState
           actionLabel="Filtrlarni tozalash"
-          description="Tanlangan filtrlar bo'yicha natija topilmadi. Qidiruv yoki sanani o'zgartirib ko'ring."
+          description="Filtrlarni o'zgartiring."
           icon={Files}
           onAction={() => {
             setSearchValue('')
-            setDateValue('')
+            setDateFromValue('')
+            setDateToValue('')
+            setSortValue('date_desc')
           }}
           title="Natija topilmadi"
         />
       ) : null}
 
       <FormModal
-        description={editingRecord ? 'Mavjud yozuvni yangilang.' : "Yangi ma'lumot qo'shing."}
         errors={errors}
         fields={config.fields}
         onChange={handleChange}
@@ -252,7 +305,7 @@ export function EntityPageShell<T extends EntityRecord>({
       />
 
       <ConfirmDialog
-        description="Ushbu amal qaytarib olinmaydi. Yozuv localStorage ichidan ham olib tashlanadi."
+        description="Bu amalni bekor qilib bo'lmaydi."
         onCancel={() => setDeleteTarget(null)}
         onConfirm={handleDelete}
         open={Boolean(deleteTarget)}

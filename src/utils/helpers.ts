@@ -27,10 +27,3 @@ export function isValidDateString(value: string) {
 export function getTodayDate() {
   return new Date().toISOString().slice(0, 10)
 }
-
-export function formatCompactNumber(value: number) {
-  return new Intl.NumberFormat('uz-UZ', {
-    notation: 'compact',
-    maximumFractionDigits: 1,
-  }).format(value)
-}

@@ -1,6 +1,6 @@
 import { EntityPageShell } from '../components/EntityPageShell'
-import { foodsConfig } from '../data/entityConfigs'
+import { entityConfigs } from '../data/entities'
 
 export function FoodPage() {
-  return <EntityPageShell config={foodsConfig} />
+  return <EntityPageShell config={entityConfigs.food} />
 }

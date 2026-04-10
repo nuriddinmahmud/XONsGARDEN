@@ -3,7 +3,7 @@ import type { LucideIcon } from 'lucide-react'
 interface EmptyStateProps {
   icon: LucideIcon
   title: string
-  description: string
+  description?: string
   actionLabel?: string
   onAction?: () => void
 }
@@ -21,7 +21,9 @@ export function EmptyState({
         <Icon className="h-8 w-8" />
       </div>
       <h3 className="mt-5 text-xl font-semibold text-slate-950">{title}</h3>
-      <p className="mx-auto mt-2 max-w-xl text-sm leading-6 text-slate-500">{description}</p>
+      {description ? (
+        <p className="mx-auto mt-2 max-w-xl text-sm leading-6 text-slate-500">{description}</p>
+      ) : null}
       {actionLabel && onAction ? (
         <button
           className="mt-6 inline-flex h-11 items-center justify-center rounded-2xl bg-slate-950 px-5 text-sm font-semibold text-white transition hover:bg-emerald-700"

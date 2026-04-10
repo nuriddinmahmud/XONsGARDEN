@@ -1,6 +1,6 @@
 import { EntityPageShell } from '../components/EntityPageShell'
-import { fertilizersConfig } from '../data/entityConfigs'
+import { entityConfigs } from '../data/entities'
 
 export function FertilizerPage() {
-  return <EntityPageShell config={fertilizersConfig} />
+  return <EntityPageShell config={entityConfigs.fertilizer} />
 }

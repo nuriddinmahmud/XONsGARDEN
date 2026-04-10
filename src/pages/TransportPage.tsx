@@ -1,6 +1,6 @@
 import { EntityPageShell } from '../components/EntityPageShell'
-import { transportsConfig } from '../data/entityConfigs'
+import { entityConfigs } from '../data/entities'
 
 export function TransportPage() {
-  return <EntityPageShell config={transportsConfig} />
+  return <EntityPageShell config={entityConfigs.transport} />
 }

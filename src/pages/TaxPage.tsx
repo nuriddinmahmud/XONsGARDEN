@@ -1,6 +1,6 @@
 import { EntityPageShell } from '../components/EntityPageShell'
-import { taxesConfig } from '../data/entityConfigs'
+import { entityConfigs } from '../data/entities'
 
 export function TaxPage() {
-  return <EntityPageShell config={taxesConfig} />
+  return <EntityPageShell config={entityConfigs.tax} />
 }

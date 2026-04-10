@@ -1,8 +1,9 @@
 import { PencilLine, Trash2 } from 'lucide-react'
-import type { TableColumn } from '../types'
+import type { TableColumn, TableRenderContext } from '../types'
 
 interface DataTableProps<T extends { id: string }> {
   columns: TableColumn<T>[]
+  context: TableRenderContext
   rows: T[]
   onEdit: (row: T) => void
   onDelete: (row: T) => void
@@ -10,6 +11,7 @@ interface DataTableProps<T extends { id: string }> {
 
 export function DataTable<T extends { id: string }>({
   columns,
+  context,
   rows,
   onEdit,
   onDelete,
@@ -39,7 +41,7 @@ export function DataTable<T extends { id: string }>({
                 <tr className="border-t border-slate-100" key={row.id}>
                   {columns.map((column) => (
                     <td className="px-5 py-4 text-sm text-slate-700" key={column.key}>
-                      {column.render(row)}
+                      {column.render(row, context)}
                     </td>
                   ))}
                   <td className="px-5 py-4">
@@ -79,7 +81,9 @@ export function DataTable<T extends { id: string }>({
                   <span className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">
                     {column.label}
                   </span>
-                  <div className="text-right text-sm text-slate-700">{column.render(row)}</div>
+                  <div className="text-right text-sm text-slate-700">
+                    {column.render(row, context)}
+                  </div>
                 </div>
               ))}
             </div>

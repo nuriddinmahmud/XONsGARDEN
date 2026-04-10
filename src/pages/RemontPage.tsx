@@ -1,6 +1,6 @@
 import { EntityPageShell } from '../components/EntityPageShell'
-import { remontsConfig } from '../data/entityConfigs'
+import { entityConfigs } from '../data/entities'
 
 export function RemontPage() {
-  return <EntityPageShell config={remontsConfig} />
+  return <EntityPageShell config={entityConfigs.remont} />
 }

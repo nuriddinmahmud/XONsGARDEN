@@ -1,12 +1,29 @@
-import { STATIC_ADMIN } from '../constants/auth'
-import { ENTITY_KEYS, STORAGE_KEYS, STORAGE_SYNC_EVENT } from '../constants/storageKeys'
-import { demoRecords, demoSettings, demoUser } from '../data/seed'
-import type { AppSettings, AuthState, EntityKey, RecordsMap, StorageKey, User } from '../types'
+import { STORAGE_KEYS, STORAGE_SYNC_EVENT } from '../constants/storageKeys'
+import type {
+  AppSettings,
+  AppStorageBackup,
+  AuthState,
+  EntityKey,
+  RecordsMap,
+  StorageKey,
+  User,
+} from '../types'
 
 const defaultAuthState: AuthState = {
   isAuthenticated: false,
   email: null,
 }
+
+const defaultSettings: AppSettings = {
+  gardenName: '',
+  managerName: '',
+  phone: '',
+  location: '',
+  currencyLabel: "so'm",
+}
+
+const APP_STORAGE_NAME = 'xons-garden'
+const APP_STORAGE_VERSION = 1
 
 function hasStorage() {
   return typeof window !== 'undefined' && typeof window.localStorage !== 'undefined'
@@ -47,6 +64,18 @@ export function writeStorage<T>(key: StorageKey, value: T) {
   emitStorageSync(key)
 }
 
+function isObjectRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+function validateBackupValue(key: StorageKey, value: unknown) {
+  if (key === STORAGE_KEYS.auth || key === STORAGE_KEYS.settings) {
+    return isObjectRecord(value)
+  }
+
+  return Array.isArray(value)
+}
+
 export function readAuthState() {
   return readStorage<AuthState>(STORAGE_KEYS.auth, defaultAuthState)
 }
@@ -64,7 +93,7 @@ export function writeCollection<T>(key: EntityKey, value: T[]) {
 }
 
 export function readSettings() {
-  return readStorage<AppSettings>(STORAGE_KEYS.settings, demoSettings)
+  return readStorage<AppSettings>(STORAGE_KEYS.settings, defaultSettings)
 }
 
 export function writeSettings(value: AppSettings) {
@@ -72,36 +101,7 @@ export function writeSettings(value: AppSettings) {
 }
 
 export function readUsers() {
-  return readStorage<User[]>(STORAGE_KEYS.users, [demoUser])
-}
-
-export function initializeAppData() {
-  if (!hasStorage()) {
-    return
-  }
-
-  if (!window.localStorage.getItem(STORAGE_KEYS.auth)) {
-    writeAuthState(defaultAuthState)
-  }
-
-  if (!window.localStorage.getItem(STORAGE_KEYS.settings)) {
-    writeSettings(demoSettings)
-  }
-
-  if (!window.localStorage.getItem(STORAGE_KEYS.users)) {
-    writeStorage(STORAGE_KEYS.users, [
-      {
-        ...demoUser,
-        name: STATIC_ADMIN.name,
-      },
-    ])
-  }
-
-  for (const key of ENTITY_KEYS) {
-    if (!window.localStorage.getItem(key)) {
-      writeStorage(key, demoRecords[key])
-    }
-  }
+  return readStorage<User[]>(STORAGE_KEYS.users, [])
 }
 
 export function readRecordsMap(): RecordsMap {
@@ -120,4 +120,106 @@ export function readRecordsMap(): RecordsMap {
 
 export function clearSession() {
   writeAuthState(defaultAuthState)
+}
+
+export function createStorageBackup(): AppStorageBackup {
+  const data: Partial<Record<StorageKey, unknown>> = {}
+
+  for (const key of Object.values(STORAGE_KEYS)) {
+    const raw = window.localStorage.getItem(key)
+
+    if (!raw) {
+      continue
+    }
+
+    try {
+      data[key] = JSON.parse(raw) as unknown
+    } catch {
+      // Skip corrupted values instead of exporting unusable JSON.
+    }
+  }
+
+  return {
+    app: APP_STORAGE_NAME,
+    version: APP_STORAGE_VERSION,
+    exportedAt: new Date().toISOString(),
+    data,
+  }
+}
+
+export function parseStorageBackup(rawText: string) {
+  try {
+    const parsed = JSON.parse(rawText) as unknown
+
+    if (!isObjectRecord(parsed)) {
+      return { success: false as const, message: "JSON fayl formati noto'g'ri." }
+    }
+
+    if (parsed.app !== APP_STORAGE_NAME || parsed.version !== APP_STORAGE_VERSION) {
+      return {
+        success: false as const,
+        message: "Bu fayl XON's Garden zaxira fayli emas yoki versiyasi mos emas.",
+      }
+    }
+
+    if (!isObjectRecord(parsed.data)) {
+      return { success: false as const, message: "Zaxira fayl ichidagi data bo'limi noto'g'ri." }
+    }
+
+    const data: Partial<Record<StorageKey, unknown>> = {}
+
+    for (const key of Object.values(STORAGE_KEYS)) {
+      const value = parsed.data[key]
+
+      if (value === undefined) {
+        continue
+      }
+
+      if (!validateBackupValue(key, value)) {
+        return {
+          success: false as const,
+          message: `${key} bo'limidagi ma'lumot formati noto'g'ri.`,
+        }
+      }
+
+      data[key] = value
+    }
+
+    return {
+      success: true as const,
+      backup: {
+        app: APP_STORAGE_NAME,
+        version: APP_STORAGE_VERSION,
+        exportedAt:
+          typeof parsed.exportedAt === 'string' ? parsed.exportedAt : new Date().toISOString(),
+        data,
+      } satisfies AppStorageBackup,
+    }
+  } catch {
+    return { success: false as const, message: "JSON faylni o'qishda xatolik yuz berdi." }
+  }
+}
+
+export function restoreStorageBackup(backup: AppStorageBackup) {
+  if (!hasStorage()) {
+    return { success: false as const, message: 'Brauzer storage mavjud emas.' }
+  }
+
+  for (const key of Object.values(STORAGE_KEYS)) {
+    window.localStorage.removeItem(key)
+  }
+
+  for (const key of Object.values(STORAGE_KEYS)) {
+    const value = backup.data[key]
+
+    if (value !== undefined) {
+      window.localStorage.setItem(key, JSON.stringify(value))
+    }
+  }
+
+  for (const key of Object.values(STORAGE_KEYS)) {
+    emitStorageSync(key)
+  }
+
+  return { success: true as const }
 }

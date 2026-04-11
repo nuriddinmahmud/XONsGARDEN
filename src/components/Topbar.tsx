@@ -1,5 +1,6 @@
 import { LogOut, Menu, ShieldCheck } from 'lucide-react'
 import { useLocation, useNavigate } from 'react-router-dom'
+import { BrandLogo } from './BrandLogo'
 import { navigationItems } from '../constants/navigation'
 import { useAuth } from '../context/AuthContext'
 import { useToast } from '../context/ToastContext'
@@ -16,6 +17,7 @@ export function Topbar({ onMenuClick }: TopbarProps) {
   const { logout } = useAuth()
   const { showToast } = useToast()
   const settings = useSettings()
+  const gardenName = settings.gardenName || "XON's Garden"
 
   const currentItem = navigationItems.find((item) => item.path === location.pathname)
 
@@ -31,12 +33,16 @@ export function Topbar({ onMenuClick }: TopbarProps) {
             <Menu className="h-5 w-5" />
           </button>
 
+          <div className="rounded-2xl border border-white/70 bg-white/85 px-3 py-2 shadow-sm">
+            <BrandLogo className="h-9" />
+          </div>
+
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-700">
               {currentItem?.label ?? 'Boshqaruv'}
             </p>
             <h2 className="mt-1 text-2xl font-semibold tracking-tight text-slate-950">
-              {currentItem?.description ?? settings.gardenName}
+              {currentItem?.description ?? gardenName}
             </h2>
           </div>
         </div>

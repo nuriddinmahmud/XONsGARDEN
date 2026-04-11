@@ -1,6 +1,7 @@
-import { Eye, EyeOff, Leaf, LockKeyhole, Mail } from 'lucide-react'
+import { Eye, EyeOff, LockKeyhole, Mail } from 'lucide-react'
 import { useState, type FormEvent } from 'react'
 import { Navigate, useNavigate } from 'react-router-dom'
+import { BrandLogo } from '../components/BrandLogo'
 import { useAuth } from '../context/AuthContext'
 import { useToast } from '../context/ToastContext'
 
@@ -43,9 +44,8 @@ export function LoginPage() {
     <div className="min-h-screen bg-[radial-gradient(circle_at_top_left,_rgba(16,185,129,0.18),_transparent_35%),radial-gradient(circle_at_bottom_right,_rgba(15,23,42,0.12),_transparent_28%),linear-gradient(180deg,_#f8fafc_0%,_#eef6f1_100%)] px-4 py-8">
       <div className="mx-auto grid min-h-[calc(100vh-4rem)] max-w-7xl items-center gap-8 lg:grid-cols-[1.05fr_0.95fr]">
         <section className="hidden rounded-[36px] border border-white/70 bg-slate-950 p-10 text-white shadow-[0_35px_90px_-45px_rgba(15,23,42,0.85)] lg:block">
-          <div className="inline-flex items-center gap-3 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm text-emerald-200">
-            <Leaf className="h-4 w-4" />
-            XON's Garden
+          <div className="inline-flex rounded-[28px] border border-white/10 bg-white/5 px-4 py-3">
+            <BrandLogo className="h-14" />
           </div>
           <h1 className="mt-8 max-w-xl text-5xl font-semibold leading-tight tracking-tight">
             Bog' xarajatlari nazorati
@@ -70,8 +70,8 @@ export function LoginPage() {
 
         <section className="mx-auto w-full max-w-xl rounded-[36px] border border-white/70 bg-white/88 p-6 shadow-[0_35px_90px_-45px_rgba(15,23,42,0.45)] backdrop-blur xl:p-8">
           <div className="flex items-center gap-3">
-            <div className="flex h-14 w-14 items-center justify-center rounded-3xl bg-emerald-500 text-white shadow-lg shadow-emerald-500/30">
-              <Leaf className="h-7 w-7" />
+            <div className="rounded-3xl border border-emerald-100 bg-emerald-50 px-3 py-2 shadow-lg shadow-emerald-500/10">
+              <BrandLogo className="h-12" />
             </div>
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-700">

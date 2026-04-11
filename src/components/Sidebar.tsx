@@ -1,8 +1,9 @@
-import { Leaf, X } from 'lucide-react'
+import { X } from 'lucide-react'
 import { NavLink } from 'react-router-dom'
 import { navigationItems } from '../constants/navigation'
 import { useSettings } from '../hooks/useSettings'
 import { cn } from '../utils/helpers'
+import { BrandLogo } from './BrandLogo'
 
 interface SidebarProps {
   isOpen: boolean
@@ -11,6 +12,7 @@ interface SidebarProps {
 
 export function Sidebar({ isOpen, onClose }: SidebarProps) {
   const settings = useSettings()
+  const gardenName = settings.gardenName || "XON's Garden"
 
   return (
     <>
@@ -30,14 +32,14 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
       >
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="flex h-12 w-12 items-center justify-center rounded-3xl bg-emerald-500 text-white shadow-lg shadow-emerald-500/25">
-              <Leaf className="h-6 w-6" />
+            <div className="rounded-3xl border border-white/80 bg-white/90 px-3 py-2 shadow-[0_16px_40px_-24px_rgba(15,23,42,0.45)]">
+              <BrandLogo className="h-10" />
             </div>
-            <div>
+            <div className="min-w-0">
               <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-700">
                 Admin
               </p>
-              <h1 className="text-lg font-semibold text-slate-950">{settings.gardenName}</h1>
+              <h1 className="truncate text-lg font-semibold text-slate-950">{gardenName}</h1>
             </div>
           </div>
 

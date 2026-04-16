@@ -1,12 +1,15 @@
 import { PencilLine, Trash2 } from 'lucide-react'
+import type { ReactNode } from 'react'
 import type { TableColumn, TableRenderContext } from '../types'
 
 interface DataTableProps<T extends { id: string }> {
   columns: TableColumn<T>[]
   context: TableRenderContext
   rows: T[]
-  onEdit: (row: T) => void
-  onDelete: (row: T) => void
+  onEdit?: (row: T) => void
+  onDelete?: (row: T) => void
+  renderActions?: (row: T) => ReactNode
+  actionsLabel?: string
 }
 
 export function DataTable<T extends { id: string }>({
@@ -15,7 +18,11 @@ export function DataTable<T extends { id: string }>({
   rows,
   onEdit,
   onDelete,
+  renderActions,
+  actionsLabel = 'Amallar',
 }: DataTableProps<T>) {
+  const hasActions = Boolean(renderActions || onEdit || onDelete)
+
   return (
     <>
       <div className="hidden overflow-hidden rounded-3xl border border-white/70 bg-white/85 shadow-[0_20px_60px_-35px_rgba(15,23,42,0.35)] lg:block">
@@ -31,9 +38,11 @@ export function DataTable<T extends { id: string }>({
                     {column.label}
                   </th>
                 ))}
-                <th className="px-5 py-4 text-right text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
-                  Amallar
-                </th>
+                {hasActions ? (
+                  <th className="px-5 py-4 text-right text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+                    {actionsLabel}
+                  </th>
+                ) : null}
               </tr>
             </thead>
             <tbody>
@@ -44,24 +53,36 @@ export function DataTable<T extends { id: string }>({
                       {column.render(row, context)}
                     </td>
                   ))}
-                  <td className="px-5 py-4">
-                    <div className="flex justify-end gap-2">
-                      <button
-                        className="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-slate-200 text-slate-600 transition hover:border-emerald-200 hover:bg-emerald-50 hover:text-emerald-700"
-                        onClick={() => onEdit(row)}
-                        type="button"
-                      >
-                        <PencilLine className="h-4 w-4" />
-                      </button>
-                      <button
-                        className="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-slate-200 text-slate-600 transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-700"
-                        onClick={() => onDelete(row)}
-                        type="button"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
-                    </div>
-                  </td>
+                  {hasActions ? (
+                    <td className="px-5 py-4">
+                      <div className="flex justify-end gap-2">
+                        {renderActions ? (
+                          renderActions(row)
+                        ) : (
+                          <>
+                            {onEdit ? (
+                              <button
+                                className="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-slate-200 text-slate-600 transition hover:border-emerald-200 hover:bg-emerald-50 hover:text-emerald-700"
+                                onClick={() => onEdit(row)}
+                                type="button"
+                              >
+                                <PencilLine className="h-4 w-4" />
+                              </button>
+                            ) : null}
+                            {onDelete ? (
+                              <button
+                                className="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-slate-200 text-slate-600 transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-700"
+                                onClick={() => onDelete(row)}
+                                type="button"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </button>
+                            ) : null}
+                          </>
+                        )}
+                      </div>
+                    </td>
+                  ) : null}
                 </tr>
               ))}
             </tbody>
@@ -88,24 +109,36 @@ export function DataTable<T extends { id: string }>({
               ))}
             </div>
 
-            <div className="mt-4 flex gap-2">
-              <button
-                className="inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-2xl border border-slate-200 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
-                onClick={() => onEdit(row)}
-                type="button"
-              >
-                <PencilLine className="h-4 w-4" />
-                Tahrirlash
-              </button>
-              <button
-                className="inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-2xl border border-rose-200 bg-rose-50 text-sm font-semibold text-rose-700 transition hover:bg-rose-100"
-                onClick={() => onDelete(row)}
-                type="button"
-              >
-                <Trash2 className="h-4 w-4" />
-                O'chirish
-              </button>
-            </div>
+            {hasActions ? (
+              <div className="mt-4 flex flex-wrap gap-2">
+                {renderActions ? (
+                  renderActions(row)
+                ) : (
+                  <>
+                    {onEdit ? (
+                      <button
+                        className="inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-2xl border border-slate-200 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+                        onClick={() => onEdit(row)}
+                        type="button"
+                      >
+                        <PencilLine className="h-4 w-4" />
+                        Tahrirlash
+                      </button>
+                    ) : null}
+                    {onDelete ? (
+                      <button
+                        className="inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-2xl border border-rose-200 bg-rose-50 text-sm font-semibold text-rose-700 transition hover:bg-rose-100"
+                        onClick={() => onDelete(row)}
+                        type="button"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                        O'chirish
+                      </button>
+                    ) : null}
+                  </>
+                )}
+              </div>
+            ) : null}
           </div>
         ))}
       </div>

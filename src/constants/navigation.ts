@@ -1,6 +1,7 @@
 import {
   BarChart3,
   BatteryCharging,
+  CircleDollarSign,
   Droplets,
   Gauge,
   HandCoins,
@@ -27,6 +28,7 @@ export const navigationItems: NavItem[] = [
   { path: '/tax', label: 'Soliq', icon: HandCoins },
   { path: '/drainage', label: 'Drenaj', icon: Gauge },
   { path: '/debts', label: 'Qarzdorlik', icon: ReceiptText },
+  { path: '/income', label: 'Daromad', icon: CircleDollarSign },
   { path: '/reports', label: 'Hisobotlar', icon: BarChart3 },
   { path: '/settings', label: 'Sozlamalar', icon: Settings },
 ]

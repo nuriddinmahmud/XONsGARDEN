@@ -81,6 +81,7 @@ export interface AppSettings {
 export type StorageKey =
   | 'auth'
   | 'xonsgarden_debts'
+  | 'xonsgarden_income'
   | 'workers'
   | 'foods'
   | 'fertilizers'

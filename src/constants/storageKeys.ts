@@ -3,6 +3,7 @@ import type { EntityKey, StorageKey } from '../types'
 export const STORAGE_KEYS: Record<StorageKey, StorageKey> = {
   auth: 'auth',
   xonsgarden_debts: 'xonsgarden_debts',
+  xonsgarden_income: 'xonsgarden_income',
   workers: 'workers',
   foods: 'foods',
   fertilizers: 'fertilizers',

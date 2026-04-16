@@ -52,6 +52,10 @@ const DebtPage = lazy(() =>
   import('../pages/DebtPage').then((module) => ({ default: module.DebtPage })),
 )
 
+const IncomePage = lazy(() =>
+  import('../pages/IncomePage').then((module) => ({ default: module.IncomePage })),
+)
+
 const ReportsPage = lazy(() =>
   import('../pages/ReportsPage').then((module) => ({ default: module.ReportsPage })),
 )
@@ -80,6 +84,7 @@ export function AppRouter() {
             <Route element={<TaxPage />} path="/tax" />
             <Route element={<DrainagePage />} path="/drainage" />
             <Route element={<DebtPage />} path="/debts" />
+            <Route element={<IncomePage />} path="/income" />
             <Route element={<ReportsPage />} path="/reports" />
             <Route element={<SettingsPage />} path="/settings" />
           </Route>

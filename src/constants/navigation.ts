@@ -5,6 +5,7 @@ import {
   Gauge,
   HandCoins,
   LayoutDashboard,
+  ReceiptText,
   Settings,
   Tractor,
   Truck,
@@ -25,6 +26,7 @@ export const navigationItems: NavItem[] = [
   { path: '/remont', label: 'Remont', icon: Wrench },
   { path: '/tax', label: 'Soliq', icon: HandCoins },
   { path: '/drainage', label: 'Drenaj', icon: Gauge },
+  { path: '/debts', label: 'Qarzdorlik', icon: ReceiptText },
   { path: '/reports', label: 'Hisobotlar', icon: BarChart3 },
   { path: '/settings', label: 'Sozlamalar', icon: Settings },
 ]

@@ -1,8 +1,8 @@
-import type { CategorySummary } from '../types'
+import type { SummaryCardItem } from '../types'
 import { formatMoney } from '../utils/formatMoney'
 
 interface SummaryCardsProps {
-  items: CategorySummary[]
+  items: SummaryCardItem[]
   currencyLabel: string
 }
 

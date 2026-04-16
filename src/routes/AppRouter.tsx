@@ -48,6 +48,10 @@ const DrainagePage = lazy(() =>
   import('../pages/DrainagePage').then((module) => ({ default: module.DrainagePage })),
 )
 
+const DebtPage = lazy(() =>
+  import('../pages/DebtPage').then((module) => ({ default: module.DebtPage })),
+)
+
 const ReportsPage = lazy(() =>
   import('../pages/ReportsPage').then((module) => ({ default: module.ReportsPage })),
 )
@@ -75,6 +79,7 @@ export function AppRouter() {
             <Route element={<RemontPage />} path="/remont" />
             <Route element={<TaxPage />} path="/tax" />
             <Route element={<DrainagePage />} path="/drainage" />
+            <Route element={<DebtPage />} path="/debts" />
             <Route element={<ReportsPage />} path="/reports" />
             <Route element={<SettingsPage />} path="/settings" />
           </Route>

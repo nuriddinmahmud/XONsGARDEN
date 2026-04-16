@@ -80,6 +80,7 @@ export interface AppSettings {
 
 export type StorageKey =
   | 'auth'
+  | 'xonsgarden_debts'
   | 'workers'
   | 'foods'
   | 'fertilizers'
@@ -173,6 +174,14 @@ export type FormValues = Record<string, string>
 
 export interface CategorySummary {
   key: EntityKey
+  label: string
+  total: number
+  count: number
+  color: string
+}
+
+export interface SummaryCardItem {
+  key: string
   label: string
   total: number
   count: number

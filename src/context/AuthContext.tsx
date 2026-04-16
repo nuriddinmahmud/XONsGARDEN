@@ -1,12 +1,13 @@
 /* eslint-disable react-refresh/only-export-components */
-import { createContext, useContext, useMemo, useState, type ReactNode } from 'react'
+import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { STATIC_ADMIN } from '../constants/auth'
+import { STORAGE_KEYS, STORAGE_SYNC_EVENT } from '../constants/storageKeys'
 import type { AuthState } from '../types'
 import { clearSession, readAuthState, writeAuthState } from '../utils/localStorage'
 
 interface AuthContextValue {
   authState: AuthState
-  login: (email: string, password: string) => { success: boolean; message?: string }
+  login: (login: string, password: string) => { success: boolean; message?: string }
   logout: () => void
 }
 
@@ -15,24 +16,42 @@ const AuthContext = createContext<AuthContextValue | undefined>(undefined)
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [authState, setAuthState] = useState<AuthState>(() => readAuthState())
 
+  useEffect(() => {
+    const sync = (event?: Event) => {
+      const customEvent = event as CustomEvent<{ key?: string }> | undefined
+
+      if (customEvent?.detail?.key && customEvent.detail.key !== STORAGE_KEYS.auth) {
+        return
+      }
+
+      setAuthState(readAuthState())
+    }
+
+    window.addEventListener(STORAGE_SYNC_EVENT, sync as EventListener)
+    window.addEventListener('storage', sync)
+
+    return () => {
+      window.removeEventListener(STORAGE_SYNC_EVENT, sync as EventListener)
+      window.removeEventListener('storage', sync)
+    }
+  }, [])
+
   const value = useMemo<AuthContextValue>(
     () => ({
       authState,
-      login: (email, password) => {
-        const isValid =
-          email.trim().toLowerCase() === STATIC_ADMIN.email.toLowerCase() &&
-          password === STATIC_ADMIN.password
+      login: (login, password) => {
+        const isValid = login.trim() === STATIC_ADMIN.login && password === STATIC_ADMIN.password
 
         if (!isValid) {
           return {
             success: false,
-            message: "Email yoki parol noto'g'ri. Qayta urinib ko'ring.",
+            message: 'Invalid credentials',
           }
         }
 
         const nextState: AuthState = {
           isAuthenticated: true,
-          email: STATIC_ADMIN.email,
+          login: STATIC_ADMIN.login,
         }
 
         setAuthState(nextState)

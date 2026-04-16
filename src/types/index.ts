@@ -11,7 +11,7 @@ export interface User {
 
 export interface AuthState {
   isAuthenticated: boolean
-  email: string | null
+  login: string | null
 }
 
 export interface BaseRecord {

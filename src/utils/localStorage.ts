@@ -1,3 +1,4 @@
+import { STATIC_ADMIN } from '../constants/auth'
 import { STORAGE_KEYS, STORAGE_SYNC_EVENT } from '../constants/storageKeys'
 import type {
   AppSettings,
@@ -11,7 +12,7 @@ import type {
 
 const defaultAuthState: AuthState = {
   isAuthenticated: false,
-  email: null,
+  login: null,
 }
 
 const defaultSettings: AppSettings = {
@@ -68,8 +69,37 @@ function isObjectRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
 
+function normalizeAuthState(value: unknown): AuthState {
+  if (value === true || value === 'true') {
+    return {
+      isAuthenticated: true,
+      login: STATIC_ADMIN.login,
+    }
+  }
+
+  if (!isObjectRecord(value) || typeof value.isAuthenticated !== 'boolean') {
+    return defaultAuthState
+  }
+
+  const storedLogin =
+    typeof value.login === 'string'
+      ? value.login
+      : typeof value.email === 'string'
+        ? value.email
+        : null
+
+  return {
+    isAuthenticated: value.isAuthenticated,
+    login: value.isAuthenticated ? storedLogin ?? STATIC_ADMIN.login : null,
+  }
+}
+
 function validateBackupValue(key: StorageKey, value: unknown) {
-  if (key === STORAGE_KEYS.auth || key === STORAGE_KEYS.settings) {
+  if (key === STORAGE_KEYS.auth) {
+    return typeof value === 'boolean' || typeof value === 'string' || isObjectRecord(value)
+  }
+
+  if (key === STORAGE_KEYS.settings) {
     return isObjectRecord(value)
   }
 
@@ -77,11 +107,35 @@ function validateBackupValue(key: StorageKey, value: unknown) {
 }
 
 export function readAuthState() {
-  return readStorage<AuthState>(STORAGE_KEYS.auth, defaultAuthState)
+  if (!hasStorage()) {
+    return defaultAuthState
+  }
+
+  const raw = window.localStorage.getItem(STORAGE_KEYS.auth)
+
+  if (!raw) {
+    return defaultAuthState
+  }
+
+  try {
+    return normalizeAuthState(JSON.parse(raw) as unknown)
+  } catch {
+    return normalizeAuthState(raw)
+  }
 }
 
 export function writeAuthState(value: AuthState) {
-  writeStorage(STORAGE_KEYS.auth, value)
+  if (!hasStorage()) {
+    return
+  }
+
+  if (value.isAuthenticated) {
+    window.localStorage.setItem(STORAGE_KEYS.auth, 'true')
+  } else {
+    window.localStorage.removeItem(STORAGE_KEYS.auth)
+  }
+
+  emitStorageSync(STORAGE_KEYS.auth)
 }
 
 export function readCollection<T>(key: EntityKey) {

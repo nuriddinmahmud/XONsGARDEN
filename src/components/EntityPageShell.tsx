@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { Files, PlusCircle } from 'lucide-react'
 import { useToast } from '../context/ToastContext'
 import { useCrudCollection } from '../hooks/useCrudCollection'
@@ -36,7 +36,7 @@ export function EntityPageShell<T extends EntityRecord>({
 }: {
   config: EntityPageConfig<T>
 }) {
-  const { records, saveRecord, deleteRecord } = useCrudCollection<T>(config.storageKey)
+  const { records, saveRecord, deleteRecord, loading, error } = useCrudCollection<T>(config.storageKey)
   const { showToast } = useToast()
   const { currencyLabel } = useSettings()
   const [searchValue, setSearchValue] = useState('')
@@ -45,17 +45,11 @@ export function EntityPageShell<T extends EntityRecord>({
   const [sortValue, setSortValue] = useState<'date_desc' | 'date_asc' | 'amount_desc' | 'amount_asc'>(
     'date_desc',
   )
-  const [loading, setLoading] = useState(true)
   const [modalOpen, setModalOpen] = useState(false)
   const [editingRecord, setEditingRecord] = useState<T | null>(null)
   const [values, setValues] = useState<FormValues>(() => createInitialValues(config))
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [deleteTarget, setDeleteTarget] = useState<T | null>(null)
-
-  useEffect(() => {
-    const timer = window.setTimeout(() => setLoading(false), 350)
-    return () => window.clearTimeout(timer)
-  }, [])
 
   const filteredRecords = useMemo(() => {
     const filtered = [...records]
@@ -161,7 +155,7 @@ export function EntityPageShell<T extends EntityRecord>({
     return Object.keys(nextErrors).length === 0
   }
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!validate()) {
       showToast({
         type: 'error',
@@ -171,31 +165,49 @@ export function EntityPageShell<T extends EntityRecord>({
       return
     }
 
-    const record = config.createRecord(values, editingRecord?.id)
-    saveRecord(record)
-    setModalOpen(false)
-    setEditingRecord(null)
-    setValues(createInitialValues(config))
-    setErrors({})
-    showToast({
-      type: 'success',
-      title: editingRecord ? 'Yozuv yangilandi' : "Yangi yozuv qo'shildi",
-      description: 'Saqlandi.',
-    })
+    try {
+      const record = config.createRecord(values, editingRecord?.id)
+      await saveRecord(record)
+      setModalOpen(false)
+      setEditingRecord(null)
+      setValues(createInitialValues(config))
+      setErrors({})
+      showToast({
+        type: 'success',
+        title: editingRecord ? 'Yozuv yangilandi' : "Yangi yozuv qo'shildi",
+        description: 'Saqlandi.',
+      })
+    } catch (submitError) {
+      showToast({
+        type: 'error',
+        title: 'Saqlash amalga oshmadi',
+        description:
+          submitError instanceof Error ? submitError.message : 'Yozuvni saqlab bo\'lmadi.',
+      })
+    }
   }
 
-  const handleDelete = () => {
+  const handleDelete = async () => {
     if (!deleteTarget) {
       return
     }
 
-    deleteRecord(deleteTarget.id)
-    setDeleteTarget(null)
-    showToast({
-      type: 'success',
-      title: "Yozuv o'chirildi",
-      description: "O'chirildi.",
-    })
+    try {
+      await deleteRecord(deleteTarget.id)
+      setDeleteTarget(null)
+      showToast({
+        type: 'success',
+        title: "Yozuv o'chirildi",
+        description: "O'chirildi.",
+      })
+    } catch (deleteError) {
+      showToast({
+        type: 'error',
+        title: "O'chirish amalga oshmadi",
+        description:
+          deleteError instanceof Error ? deleteError.message : "Yozuvni o'chirib bo'lmadi.",
+      })
+    }
   }
 
   return (
@@ -250,6 +262,12 @@ export function EntityPageShell<T extends EntityRecord>({
         searchValue={searchValue}
         sortValue={sortValue}
       />
+
+      {error ? (
+        <div className="rounded-3xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+          {error}
+        </div>
+      ) : null}
 
       {loading ? <div className="grid gap-4">{createLoadingRows()}</div> : null}
 

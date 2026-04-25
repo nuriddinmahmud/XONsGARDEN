@@ -1,70 +1,77 @@
 /* eslint-disable react-refresh/only-export-components */
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
-import { STATIC_ADMIN } from '../constants/auth'
-import { STORAGE_KEYS, STORAGE_SYNC_EVENT } from '../constants/storageKeys'
 import type { AuthState } from '../types'
-import { clearSession, readAuthState, writeAuthState } from '../utils/localStorage'
+import { resetGardenCache } from '../lib/database'
+import { readAuthState, writeAuthState } from '../utils/localStorage'
 
 interface AuthContextValue {
   authState: AuthState
-  login: (login: string, password: string) => { success: boolean; message?: string }
-  logout: () => void
+  loading: boolean
+  login: (login: string, password: string) => Promise<{ success: boolean; message?: string }>
+  logout: () => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined)
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [authState, setAuthState] = useState<AuthState>(() => readAuthState())
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const [loginName, setLoginName] = useState<string | null>(null)
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    const sync = (event?: Event) => {
-      const customEvent = event as CustomEvent<{ key?: string }> | undefined
+    let isMounted = true
 
-      if (customEvent?.detail?.key && customEvent.detail.key !== STORAGE_KEYS.auth) {
-        return
+    const hydrate = async () => {
+      const nextAuthState = await readAuthState()
+
+      if (isMounted) {
+        setIsAuthenticated(nextAuthState.isAuthenticated)
+        setLoginName(nextAuthState.login)
+        setLoading(false)
       }
-
-      setAuthState(readAuthState())
     }
 
-    window.addEventListener(STORAGE_SYNC_EVENT, sync as EventListener)
-    window.addEventListener('storage', sync)
+    void hydrate()
 
     return () => {
-      window.removeEventListener(STORAGE_SYNC_EVENT, sync as EventListener)
-      window.removeEventListener('storage', sync)
+      isMounted = false
     }
   }, [])
+
+  const authState = useMemo<AuthState>(
+    () => ({
+      isAuthenticated,
+      login: loginName,
+    }),
+    [isAuthenticated, loginName],
+  )
 
   const value = useMemo<AuthContextValue>(
     () => ({
       authState,
-      login: (login, password) => {
-        const isValid = login.trim() === STATIC_ADMIN.login && password === STATIC_ADMIN.password
-
-        if (!isValid) {
+      loading,
+      login: async (username, password) => {
+        if (username !== 'XON' || password !== 'RAK') {
           return {
             success: false,
-            message: 'Invalid credentials',
+            message: 'Invalid login credentials',
           }
         }
 
-        const nextState: AuthState = {
-          isAuthenticated: true,
-          login: STATIC_ADMIN.login,
-        }
-
-        setAuthState(nextState)
-        writeAuthState(nextState)
+        await writeAuthState(true)
+        setIsAuthenticated(true)
+        setLoginName('XON')
 
         return { success: true }
       },
-      logout: () => {
-        clearSession()
-        setAuthState(readAuthState())
+      logout: async () => {
+        await writeAuthState(false)
+        resetGardenCache()
+        setIsAuthenticated(false)
+        setLoginName(null)
       },
     }),
-    [authState],
+    [authState, loading],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

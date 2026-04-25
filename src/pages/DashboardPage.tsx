@@ -26,6 +26,7 @@ import {
   YAxis,
 } from 'recharts'
 import { ChartCard } from '../components/ChartCard'
+import { RouteLoader } from '../components/RouteLoader'
 import { StatCard } from '../components/StatCard'
 import { SummaryCards } from '../components/SummaryCards'
 import { useFinancialRecords } from '../hooks/useFinancialRecords'
@@ -59,7 +60,7 @@ function EmptyChartState({ text }: { text: string }) {
 }
 
 export function DashboardPage() {
-  const { recordsMap, debts, incomeRecords } = useFinancialRecords()
+  const { recordsMap, debts, incomeRecords, loading, error } = useFinancialRecords()
   const { currencyLabel } = useSettings()
 
   const expensesTotal = useMemo(() => getAllTotals(recordsMap), [recordsMap])
@@ -87,6 +88,18 @@ export function DashboardPage() {
     [debts, expensesTotal, incomeRecords],
   )
   const overdueCount = useMemo(() => getOverdueDebtCount(debts), [debts])
+
+  if (loading) {
+    return <RouteLoader />
+  }
+
+  if (error) {
+    return (
+      <div className="rounded-3xl border border-rose-200 bg-rose-50 px-5 py-4 text-sm text-rose-700">
+        {error}
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-6">

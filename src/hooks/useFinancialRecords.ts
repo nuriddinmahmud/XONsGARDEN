@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react'
-import { STORAGE_KEYS, STORAGE_SYNC_EVENT } from '../constants/storageKeys'
+import { useCallback, useEffect, useState } from 'react'
+import { subscribeToGardenTables } from '../lib/realtime'
 import type { DebtRecord } from '../types/debt'
 import type { IncomeRecord } from '../types/income'
 import { readDebts } from '../utils/debtStorage'
@@ -7,38 +7,101 @@ import { readIncomeRecords } from '../utils/incomeStorage'
 import { useRecordsMap } from './useRecordsMap'
 
 export function useFinancialRecords() {
-  const recordsMap = useRecordsMap()
-  const [debts, setDebts] = useState<DebtRecord[]>(() => readDebts())
-  const [incomeRecords, setIncomeRecords] = useState<IncomeRecord[]>(() => readIncomeRecords())
+  const {
+    recordsMap,
+    loading: recordsMapLoading,
+    error: recordsMapError,
+    refresh: refreshRecordsMap,
+  } = useRecordsMap()
+  const [debts, setDebts] = useState<DebtRecord[]>([])
+  const [incomeRecords, setIncomeRecords] = useState<IncomeRecord[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  const refresh = useCallback(async () => {
+    setLoading(true)
+
+    try {
+      const [nextDebts, nextIncomeRecords] = await Promise.all([readDebts(), readIncomeRecords()])
+      setDebts(nextDebts)
+      setIncomeRecords(nextIncomeRecords)
+      setError(null)
+    } catch (refreshError) {
+      setError(refreshError instanceof Error ? refreshError.message : 'Moliyaviy ma\'lumotlarni yuklab bo\'lmadi.')
+    } finally {
+      setLoading(false)
+    }
+  }, [])
 
   useEffect(() => {
-    const sync = (event?: Event) => {
-      const customEvent = event as CustomEvent<{ key?: string }> | undefined
+    let isMounted = true
+    let unsubscribe: (() => void) | undefined
 
-      if (
-        customEvent?.detail?.key &&
-        customEvent.detail.key !== STORAGE_KEYS.xonsgarden_debts &&
-        customEvent.detail.key !== STORAGE_KEYS.xonsgarden_income
-      ) {
+    const setup = async () => {
+      await refresh()
+
+      if (!isMounted) {
         return
       }
 
-      setDebts(readDebts())
-      setIncomeRecords(readIncomeRecords())
+      try {
+        unsubscribe = await subscribeToGardenTables({
+          channelKey: 'xons-financial-records',
+          tables: ['income_records', 'debt_records'],
+          onChange: async () => {
+            if (!isMounted) {
+              return
+            }
+
+            try {
+              const [nextDebts, nextIncomeRecords] = await Promise.all([
+                readDebts(),
+                readIncomeRecords(),
+              ])
+
+              if (isMounted) {
+                setDebts(nextDebts)
+                setIncomeRecords(nextIncomeRecords)
+                setError(null)
+              }
+            } catch (subscriptionError) {
+              if (isMounted) {
+                setError(
+                  subscriptionError instanceof Error
+                    ? subscriptionError.message
+                    : 'Realtime sinxronizatsiya amalga oshmadi.',
+                )
+              }
+            }
+          },
+        })
+      } catch (subscriptionError) {
+        if (isMounted) {
+          setError(
+            subscriptionError instanceof Error
+              ? subscriptionError.message
+              : 'Realtime ulanishini yaratib bo\'lmadi.',
+          )
+        }
+      }
     }
 
-    window.addEventListener(STORAGE_SYNC_EVENT, sync as EventListener)
-    window.addEventListener('storage', sync)
+    void setup()
 
     return () => {
-      window.removeEventListener(STORAGE_SYNC_EVENT, sync as EventListener)
-      window.removeEventListener('storage', sync)
+      isMounted = false
+      unsubscribe?.()
     }
-  }, [])
+  }, [refresh])
 
   return {
     recordsMap,
     debts,
     incomeRecords,
+    loading: loading || recordsMapLoading,
+    error: error ?? recordsMapError,
+    refresh: async () => {
+      await Promise.all([refresh(), refreshRecordsMap()])
+    },
   }
 }

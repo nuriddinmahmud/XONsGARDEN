@@ -62,14 +62,22 @@ export function Topbar({ onMenuClick }: TopbarProps) {
 
           <button
             className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-700"
-            onClick={() => {
-              logout()
-              navigate('/login')
-              showToast({
-                type: 'info',
-                title: 'Sessiya yakunlandi',
-                description: 'Admin paneldan xavfsiz chiqildi.',
-              })
+            onClick={async () => {
+              try {
+                await logout()
+                navigate('/login')
+                showToast({
+                  type: 'info',
+                  title: 'Sessiya yakunlandi',
+                  description: 'Admin paneldan xavfsiz chiqildi.',
+                })
+              } catch (error) {
+                showToast({
+                  type: 'error',
+                  title: 'Chiqishda xatolik',
+                  description: error instanceof Error ? error.message : 'Qayta urinib ko\'ring.',
+                })
+              }
             }}
             type="button"
           >

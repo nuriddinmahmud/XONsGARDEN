@@ -1,60 +1,39 @@
-import { STORAGE_KEYS } from '../constants/storageKeys'
-import type { DebtRecord, DebtStatus } from '../types/debt'
-import { readStorage, writeStorage } from './localStorage'
+import type { DebtRecord } from '../types/debt'
+import {
+  deleteDebtRecord as deleteDebtDatabaseRecord,
+  readDebts as readDebtDatabaseRecords,
+  saveDebtRecord as saveDebtDatabaseRecord,
+  writeDebts as writeDebtDatabaseRecords,
+} from '../lib/database'
+import { STORAGE_KEYS, STORAGE_SYNC_EVENT } from '../constants/storageKeys'
 
-function isDebtStatus(value: unknown): value is DebtStatus {
-  return value === "to'lanmagan" || value === "qisman to'langan" || value === "to'langan"
-}
-
-function normalizeOptionalText(value: unknown) {
-  if (typeof value !== 'string') {
-    return undefined
+function emitStorageSync() {
+  if (typeof window === 'undefined') {
+    return
   }
 
-  const trimmed = value.trim()
-  return trimmed || undefined
-}
-
-function isDebtRecord(value: unknown): value is DebtRecord {
-  if (typeof value !== 'object' || value === null || Array.isArray(value)) {
-    return false
-  }
-
-  const record = value as Record<string, unknown>
-
-  return (
-    typeof record.id === 'string' &&
-    typeof record.personOrCompany === 'string' &&
-    typeof record.category === 'string' &&
-    typeof record.reason === 'string' &&
-    typeof record.amount === 'number' &&
-    Number.isFinite(record.amount) &&
-    typeof record.date === 'string' &&
-    typeof record.dueDate === 'string' &&
-    isDebtStatus(record.status) &&
-    (record.phone === undefined || typeof record.phone === 'string') &&
-    (record.note === undefined || typeof record.note === 'string')
+  window.dispatchEvent(
+    new CustomEvent(STORAGE_SYNC_EVENT, { detail: { key: STORAGE_KEYS.xonsgarden_debts } }),
   )
 }
 
-function normalizeDebtRecord(record: DebtRecord): DebtRecord {
-  return {
-    ...record,
-    personOrCompany: record.personOrCompany.trim(),
-    category: record.category.trim(),
-    reason: record.reason.trim(),
-    dueDate: record.dueDate.trim(),
-    phone: normalizeOptionalText(record.phone),
-    note: normalizeOptionalText(record.note),
-  }
+export async function readDebts() {
+  return readDebtDatabaseRecords()
 }
 
-export function readDebts() {
-  const stored = readStorage<unknown[]>(STORAGE_KEYS.xonsgarden_debts, [])
-
-  return stored.filter(isDebtRecord).map(normalizeDebtRecord)
+export async function writeDebts(records: DebtRecord[]) {
+  const value = await writeDebtDatabaseRecords(records)
+  emitStorageSync()
+  return value
 }
 
-export function writeDebts(records: DebtRecord[]) {
-  writeStorage(STORAGE_KEYS.xonsgarden_debts, records.map(normalizeDebtRecord))
+export async function saveDebtRecord(record: DebtRecord) {
+  const value = await saveDebtDatabaseRecord(record)
+  emitStorageSync()
+  return value
+}
+
+export async function deleteDebtRecord(id: string) {
+  await deleteDebtDatabaseRecord(id)
+  emitStorageSync()
 }

@@ -12,14 +12,15 @@ import { ConfirmDialog } from '../components/ConfirmDialog'
 import { DataTable } from '../components/DataTable'
 import { EmptyState } from '../components/EmptyState'
 import { FormModal } from '../components/FormModal'
+import { RouteLoader } from '../components/RouteLoader'
 import { SummaryCards } from '../components/SummaryCards'
-import { STORAGE_KEYS, STORAGE_SYNC_EVENT } from '../constants/storageKeys'
 import { useToast } from '../context/ToastContext'
 import { useSettings } from '../hooks/useSettings'
+import { subscribeToGardenTables } from '../lib/realtime'
 import type { FormField, FormValues, TableColumn } from '../types'
 import type { IncomeRecord } from '../types/income'
 import { filterIncomeRecords, getIncomeSummaryItems } from '../utils/incomeCalculations'
-import { readIncomeRecords, writeIncomeRecords } from '../utils/incomeStorage'
+import { deleteIncomeRecord, readIncomeRecords, saveIncomeRecord } from '../utils/incomeStorage'
 import { formatDate } from '../utils/formatDate'
 import { formatMoney } from '../utils/formatMoney'
 import { generateId, getTodayDate, isValidDateString, parseNumber } from '../utils/helpers'
@@ -122,7 +123,9 @@ function validateIncomeForm(values: FormValues) {
 export function IncomePage() {
   const { currencyLabel } = useSettings()
   const { showToast } = useToast()
-  const [records, setRecords] = useState<IncomeRecord[]>(() => readIncomeRecords())
+  const [records, setRecords] = useState<IncomeRecord[]>([])
+  const [loading, setLoading] = useState(true)
+  const [storageError, setStorageError] = useState<string | null>(null)
   const [searchValue, setSearchValue] = useState('')
   const [dateFromValue, setDateFromValue] = useState('')
   const [dateToValue, setDateToValue] = useState('')
@@ -133,26 +136,63 @@ export function IncomePage() {
   const [deleteTarget, setDeleteTarget] = useState<IncomeRecord | null>(null)
 
   useEffect(() => {
-    const sync = (event?: Event) => {
-      const customEvent = event as CustomEvent<{ key?: string }> | undefined
+    let isMounted = true
+    let unsubscribe: (() => void) | undefined
 
-      if (customEvent?.detail?.key && customEvent.detail.key !== STORAGE_KEYS.xonsgarden_income) {
+    const refreshRecords = async () => {
+      if (isMounted) {
+        setLoading(true)
+      }
+
+      try {
+        const nextRecords = await readIncomeRecords()
+
+        if (isMounted) {
+          setRecords(nextRecords)
+          setStorageError(null)
+        }
+      } catch (refreshError) {
+        if (isMounted) {
+          setStorageError(
+            refreshError instanceof Error ? refreshError.message : "Daromadlarni yuklab bo'lmadi.",
+          )
+        }
+      } finally {
+        if (isMounted) {
+          setLoading(false)
+        }
+      }
+    }
+
+    const setup = async () => {
+      await refreshRecords()
+
+      if (!isMounted) {
         return
       }
 
-      const nextRecords = readIncomeRecords()
-
-      setRecords((current) =>
-        JSON.stringify(current) === JSON.stringify(nextRecords) ? current : nextRecords,
-      )
+      try {
+        unsubscribe = await subscribeToGardenTables({
+          channelKey: 'xons-income-page',
+          tables: ['income_records'],
+          onChange: refreshRecords,
+        })
+      } catch (subscriptionError) {
+        if (isMounted) {
+          setStorageError(
+            subscriptionError instanceof Error
+              ? subscriptionError.message
+              : 'Realtime ulanishini yaratib bo\'lmadi.',
+          )
+        }
+      }
     }
 
-    window.addEventListener(STORAGE_SYNC_EVENT, sync as EventListener)
-    window.addEventListener('storage', sync)
+    void setup()
 
     return () => {
-      window.removeEventListener(STORAGE_SYNC_EVENT, sync as EventListener)
-      window.removeEventListener('storage', sync)
+      isMounted = false
+      unsubscribe?.()
     }
   }, [])
 
@@ -225,9 +265,8 @@ export function IncomePage() {
     [],
   )
 
-  const persistRecords = (nextRecords: IncomeRecord[]) => {
-    setRecords(nextRecords)
-    writeIncomeRecords(nextRecords)
+  if (loading) {
+    return <RouteLoader />
   }
 
   const resetModalState = () => {
@@ -256,7 +295,7 @@ export function IncomePage() {
     setErrors((current) => ({ ...current, [name]: '' }))
   }
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     const result = validateIncomeForm(values)
 
     if (!result.isValid) {
@@ -279,33 +318,58 @@ export function IncomePage() {
       createdAt: editingRecord?.createdAt ?? new Date().toISOString(),
     }
 
-    const nextRecords = editingRecord
-      ? records.map((record) => (record.id === editingRecord.id ? nextRecord : record))
-      : [nextRecord, ...records]
+    try {
+      const savedRecord = await saveIncomeRecord(nextRecord)
 
-    persistRecords(nextRecords)
-    resetModalState()
-    showToast({
-      type: 'success',
-      title: editingRecord ? 'Daromad yangilandi' : "Daromad yozuvi qo'shildi",
-      description: "Ma'lumot saqlandi.",
-    })
+      setRecords((current) =>
+        editingRecord
+          ? current.map((record) => (record.id === editingRecord.id ? savedRecord : record))
+          : [savedRecord, ...current],
+      )
+      setStorageError(null)
+      resetModalState()
+      showToast({
+        type: 'success',
+        title: editingRecord ? 'Daromad yangilandi' : "Daromad yozuvi qo'shildi",
+        description: "Ma'lumot saqlandi.",
+      })
+    } catch (submitError) {
+      setStorageError(
+        submitError instanceof Error ? submitError.message : "Daromadni saqlab bo'lmadi.",
+      )
+      showToast({
+        type: 'error',
+        title: 'Daromad saqlanmadi',
+        description: submitError instanceof Error ? submitError.message : 'Qayta urinib ko\'ring.',
+      })
+    }
   }
 
-  const handleDelete = () => {
+  const handleDelete = async () => {
     if (!deleteTarget) {
       return
     }
 
-    const nextRecords = records.filter((record) => record.id !== deleteTarget.id)
-
-    persistRecords(nextRecords)
-    setDeleteTarget(null)
-    showToast({
-      type: 'success',
-      title: "Daromad yozuvi o'chirildi",
-      description: "Ma'lumot ro'yxatdan olib tashlandi.",
-    })
+    try {
+      await deleteIncomeRecord(deleteTarget.id)
+      setRecords((current) => current.filter((record) => record.id !== deleteTarget.id))
+      setStorageError(null)
+      setDeleteTarget(null)
+      showToast({
+        type: 'success',
+        title: "Daromad yozuvi o'chirildi",
+        description: "Ma'lumot ro'yxatdan olib tashlandi.",
+      })
+    } catch (deleteError) {
+      setStorageError(
+        deleteError instanceof Error ? deleteError.message : "Daromadni o'chirib bo'lmadi.",
+      )
+      showToast({
+        type: 'error',
+        title: "Daromad yozuvi o'chirilmadi",
+        description: deleteError instanceof Error ? deleteError.message : 'Qayta urinib ko\'ring.',
+      })
+    }
   }
 
   return (
@@ -338,6 +402,12 @@ export function IncomePage() {
       </section>
 
       <SummaryCards currencyLabel={currencyLabel} items={summaryItems} />
+
+      {storageError ? (
+        <div className="rounded-3xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+          {storageError}
+        </div>
+      ) : null}
 
       <section className="rounded-3xl border border-white/70 bg-white/85 p-4 shadow-[0_20px_55px_-35px_rgba(15,23,42,0.35)]">
         <div className="grid gap-3 xl:grid-cols-[minmax(0,1.2fr)_repeat(2,minmax(0,0.7fr))_auto_auto]">

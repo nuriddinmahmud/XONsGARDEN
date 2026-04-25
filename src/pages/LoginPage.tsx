@@ -2,22 +2,27 @@ import { Eye, EyeOff, LockKeyhole, UserRound } from 'lucide-react'
 import { useState, type FormEvent } from 'react'
 import { Navigate, useNavigate } from 'react-router-dom'
 import { BrandLogo } from '../components/BrandLogo'
+import { RouteLoader } from '../components/RouteLoader'
 import { useAuth } from '../context/AuthContext'
 
 export function LoginPage() {
-  const { authState, login } = useAuth()
+  const { authState, loading, login } = useAuth()
   const navigate = useNavigate()
-  const [loginValue, setLoginValue] = useState('')
+  const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
+  if (loading) {
+    return <RouteLoader />
+  }
+
   if (authState.isAuthenticated) {
     return <Navigate replace to="/dashboard" />
   }
 
-  const isSubmitDisabled = !loginValue.trim() || !password || isSubmitting
+  const isSubmitDisabled = !username || !password || isSubmitting
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -31,10 +36,10 @@ export function LoginPage() {
 
     await new Promise((resolve) => window.setTimeout(resolve, 400))
 
-    const result = login(loginValue, password)
+    const result = await login(username, password)
 
     if (!result.success) {
-      setError(result.message ?? 'Invalid credentials')
+      setError(result.message ?? 'Invalid login credentials')
       setIsSubmitting(false)
       return
     }
@@ -59,13 +64,13 @@ export function LoginPage() {
           <h1 className="text-3xl font-semibold tracking-tight text-white">XON&apos;s Garden</h1>
           <p className="mt-2 text-sm uppercase tracking-[0.28em] text-slate-400">Admin Login</p>
           <p className="mt-4 text-sm leading-6 text-slate-300">
-            Sign in to access the admin dashboard.
+            Username va parol bilan tizimga kiring.
           </p>
         </div>
 
         <form className="mt-8 space-y-5" onSubmit={handleSubmit}>
           <label className="block">
-            <span className="mb-2 block text-sm font-medium text-slate-200">Login</span>
+            <span className="mb-2 block text-sm font-medium text-slate-200">Username</span>
             <div className="group relative">
               <UserRound className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-500 transition group-focus-within:text-emerald-300" />
               <input
@@ -74,14 +79,14 @@ export function LoginPage() {
                 className="h-14 w-full rounded-2xl border border-white/10 bg-slate-900/70 pl-12 pr-4 text-sm text-white outline-none transition duration-200 placeholder:text-slate-500 hover:border-white/20 focus:border-emerald-400 focus:bg-slate-900 focus:ring-4 focus:ring-emerald-400/15"
                 disabled={isSubmitting}
                 onChange={(event) => {
-                  setLoginValue(event.target.value)
+                  setUsername(event.target.value)
                   if (error) {
                     setError('')
                   }
                 }}
-                placeholder="Enter your login"
+                placeholder="XON"
                 type="text"
-                value={loginValue}
+                value={username}
               />
             </div>
           </label>

@@ -19,6 +19,7 @@ import {
 import { ChartCard } from '../components/ChartCard'
 import { DataTable } from '../components/DataTable'
 import { EmptyState } from '../components/EmptyState'
+import { RouteLoader } from '../components/RouteLoader'
 import { StatCard } from '../components/StatCard'
 import { SummaryCards } from '../components/SummaryCards'
 import { useFinancialRecords } from '../hooks/useFinancialRecords'
@@ -55,7 +56,7 @@ function toCsvValue(value: string | number) {
 
 export function ReportsPage() {
   const navigate = useNavigate()
-  const { recordsMap, debts, incomeRecords } = useFinancialRecords()
+  const { recordsMap, debts, incomeRecords, loading, error } = useFinancialRecords()
   const { currencyLabel } = useSettings()
   const [searchValue, setSearchValue] = useState('')
   const [moduleFilter, setModuleFilter] = useState<ReportModuleFilter>('all')
@@ -179,6 +180,18 @@ export function ReportsPage() {
     ],
     [],
   )
+
+  if (loading) {
+    return <RouteLoader />
+  }
+
+  if (error) {
+    return (
+      <div className="rounded-3xl border border-rose-200 bg-rose-50 px-5 py-4 text-sm text-rose-700">
+        {error}
+      </div>
+    )
+  }
 
   const handleExport = () => {
     if (!filteredRows.length) {

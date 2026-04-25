@@ -1,29 +1,102 @@
-import { useEffect, useState } from 'react'
-import { STORAGE_KEYS, STORAGE_SYNC_EVENT } from '../constants/storageKeys'
+import { useCallback, useEffect, useState } from 'react'
+import { subscribeToGardenTables } from '../lib/realtime'
 import type { AppSettings } from '../types'
-import { readSettings } from '../utils/localStorage'
+import { readSettings, writeSettings } from '../utils/localStorage'
 
 export function useSettings() {
-  const [settings, setSettings] = useState<AppSettings>(() => readSettings())
+  const [settings, setSettings] = useState<AppSettings>({
+    gardenName: '',
+    managerName: '',
+    phone: '',
+    location: '',
+    currencyLabel: "so'm",
+  })
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
-    const sync = (event?: Event) => {
-      const customEvent = event as CustomEvent<{ key?: string }> | undefined
-      if (customEvent?.detail?.key && customEvent.detail.key !== STORAGE_KEYS.settings) {
-        return
-      }
+  const refresh = useCallback(async () => {
+    setLoading(true)
 
-      setSettings(readSettings())
-    }
-
-    window.addEventListener(STORAGE_SYNC_EVENT, sync as EventListener)
-    window.addEventListener('storage', sync)
-
-    return () => {
-      window.removeEventListener(STORAGE_SYNC_EVENT, sync as EventListener)
-      window.removeEventListener('storage', sync)
+    try {
+      const nextSettings = await readSettings()
+      setSettings(nextSettings)
+      setError(null)
+    } catch (refreshError) {
+      setError(refreshError instanceof Error ? refreshError.message : 'Sozlamalarni yuklab bo\'lmadi.')
+    } finally {
+      setLoading(false)
     }
   }, [])
 
-  return settings
+  const saveSettings = async (value: AppSettings) => {
+    const nextSettings = await writeSettings(value)
+    setSettings(nextSettings)
+    setError(null)
+    return nextSettings
+  }
+
+  useEffect(() => {
+    let isMounted = true
+    let unsubscribe: (() => void) | undefined
+
+    const setup = async () => {
+      await refresh()
+
+      if (!isMounted) {
+        return
+      }
+
+      try {
+        unsubscribe = await subscribeToGardenTables({
+          channelKey: 'xons-settings',
+          tables: ['gardens'],
+          onChange: async () => {
+            if (!isMounted) {
+              return
+            }
+
+            try {
+              const nextSettings = await readSettings()
+
+              if (isMounted) {
+                setSettings(nextSettings)
+                setError(null)
+              }
+            } catch (subscriptionError) {
+              if (isMounted) {
+                setError(
+                  subscriptionError instanceof Error
+                    ? subscriptionError.message
+                    : 'Realtime sinxronizatsiya amalga oshmadi.',
+                )
+              }
+            }
+          },
+        })
+      } catch (subscriptionError) {
+        if (isMounted) {
+          setError(
+            subscriptionError instanceof Error
+              ? subscriptionError.message
+              : 'Realtime ulanishini yaratib bo\'lmadi.',
+          )
+        }
+      }
+    }
+
+    void setup()
+
+    return () => {
+      isMounted = false
+      unsubscribe?.()
+    }
+  }, [refresh])
+
+  return {
+    ...settings,
+    loading,
+    error,
+    refresh,
+    saveSettings,
+  }
 }

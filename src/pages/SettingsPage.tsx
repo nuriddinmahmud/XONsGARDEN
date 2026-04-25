@@ -6,10 +6,12 @@ import {
   Upload,
   UserCircle2,
 } from 'lucide-react'
-import { useRef, useState, type ChangeEvent, type FormEvent } from 'react'
+import { useEffect, useRef, useState, type ChangeEvent, type FormEvent } from 'react'
 import { ConfirmDialog } from '../components/ConfirmDialog'
+import { RouteLoader } from '../components/RouteLoader'
 import { useToast } from '../context/ToastContext'
 import { useSettings } from '../hooks/useSettings'
+import { migrateLegacyLocalStorageToSupabase } from '../scripts/migrateLocalStorageToSupabase'
 import type { AppSettings, AppStorageBackup } from '../types'
 import { normalizeCurrencyLabel } from '../utils/formatMoney'
 import {
@@ -17,10 +19,19 @@ import {
   parseStorageBackup,
   readSettings,
   restoreStorageBackup,
-  writeSettings,
 } from '../utils/localStorage'
 
 type SettingsErrors = Partial<Record<keyof AppSettings, string>>
+
+function pickSettings(source: AppSettings): AppSettings {
+  return {
+    gardenName: source.gardenName,
+    managerName: source.managerName,
+    phone: source.phone,
+    location: source.location,
+    currencyLabel: source.currencyLabel,
+  }
+}
 
 function getFieldClass(hasError: boolean) {
   return [
@@ -73,22 +84,51 @@ function validateSettings(settings: AppSettings) {
 }
 
 export function SettingsPage() {
-  const initialSettings = useSettings()
+  const settingsResource = useSettings()
   const { showToast } = useToast()
   const fileInputRef = useRef<HTMLInputElement | null>(null)
-  const [settings, setSettings] = useState(initialSettings)
+  const [settings, setSettings] = useState<AppSettings>(() => pickSettings(settingsResource))
   const [errors, setErrors] = useState<SettingsErrors>({})
   const [pendingRestore, setPendingRestore] = useState<{
     backup: AppStorageBackup
     fileName: string
   } | null>(null)
+  const [pendingMigration, setPendingMigration] = useState(false)
+  const [isExporting, setIsExporting] = useState(false)
+  const [isSaving, setIsSaving] = useState(false)
+  const [isMigrating, setIsMigrating] = useState(false)
+
+  useEffect(() => {
+    if (settingsResource.loading) {
+      return
+    }
+
+    setSettings({
+      gardenName: settingsResource.gardenName,
+      managerName: settingsResource.managerName,
+      phone: settingsResource.phone,
+      location: settingsResource.location,
+      currencyLabel: settingsResource.currencyLabel,
+    })
+  }, [
+    settingsResource.currencyLabel,
+    settingsResource.gardenName,
+    settingsResource.loading,
+    settingsResource.location,
+    settingsResource.managerName,
+    settingsResource.phone,
+  ])
+
+  if (settingsResource.loading) {
+    return <RouteLoader />
+  }
 
   const updateField = (key: keyof AppSettings, value: string) => {
     setSettings((current) => ({ ...current, [key]: value }))
     setErrors((current) => ({ ...current, [key]: undefined }))
   }
 
-  const handleSave = (event: FormEvent<HTMLFormElement>) => {
+  const handleSave = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
 
     const result = validateSettings(settings)
@@ -103,35 +143,59 @@ export function SettingsPage() {
       return
     }
 
-    setErrors({})
-    setSettings(result.normalized)
-    writeSettings(result.normalized)
-    showToast({
-      type: 'success',
-      title: 'Sozlamalar saqlandi',
-      description: 'Yangilandi.',
-    })
+    setIsSaving(true)
+
+    try {
+      setErrors({})
+      const nextSettings = await settingsResource.saveSettings(result.normalized)
+      setSettings(nextSettings)
+      showToast({
+        type: 'success',
+        title: 'Sozlamalar saqlandi',
+        description: 'Yangilandi.',
+      })
+    } catch (saveError) {
+      showToast({
+        type: 'error',
+        title: "Sozlamalar saqlanmadi",
+        description: saveError instanceof Error ? saveError.message : 'Qayta urinib ko\'ring.',
+      })
+    } finally {
+      setIsSaving(false)
+    }
   }
 
-  const handleExport = () => {
-    const backup = createStorageBackup()
-    const fileName = `xons-garden-backup-${new Date().toISOString().slice(0, 10)}.json`
-    const blob = new Blob([JSON.stringify(backup, null, 2)], {
-      type: 'application/json',
-    })
-    const url = URL.createObjectURL(blob)
-    const link = document.createElement('a')
+  const handleExport = async () => {
+    setIsExporting(true)
 
-    link.href = url
-    link.download = fileName
-    link.click()
-    URL.revokeObjectURL(url)
+    try {
+      const backup = await createStorageBackup()
+      const fileName = `xons-garden-backup-${new Date().toISOString().slice(0, 10)}.json`
+      const blob = new Blob([JSON.stringify(backup, null, 2)], {
+        type: 'application/json',
+      })
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement('a')
 
-    showToast({
-      type: 'success',
-      title: 'Zaxira fayli yaratildi',
-      description: fileName,
-    })
+      link.href = url
+      link.download = fileName
+      link.click()
+      URL.revokeObjectURL(url)
+
+      showToast({
+        type: 'success',
+        title: 'Zaxira fayli yaratildi',
+        description: fileName,
+      })
+    } catch (exportError) {
+      showToast({
+        type: 'error',
+        title: 'Eksport amalga oshmadi',
+        description: exportError instanceof Error ? exportError.message : 'Qayta urinib ko\'ring.',
+      })
+    } finally {
+      setIsExporting(false)
+    }
   }
 
   const handleImportChange = async (event: ChangeEvent<HTMLInputElement>) => {
@@ -168,12 +232,12 @@ export function SettingsPage() {
     }
   }
 
-  const confirmRestore = () => {
+  const confirmRestore = async () => {
     if (!pendingRestore) {
       return
     }
 
-    const result = restoreStorageBackup(pendingRestore.backup)
+    const result = await restoreStorageBackup(pendingRestore.backup)
 
     if (!result.success) {
       showToast({
@@ -184,7 +248,7 @@ export function SettingsPage() {
       return
     }
 
-    const nextSettings = readSettings()
+    const nextSettings = await readSettings()
 
     setSettings(nextSettings)
     setErrors({})
@@ -194,6 +258,35 @@ export function SettingsPage() {
       title: "Ma'lumotlar tiklandi",
       description: pendingRestore.fileName,
     })
+  }
+
+  const confirmMigration = async () => {
+    setIsMigrating(true)
+
+    try {
+      const result = await migrateLegacyLocalStorageToSupabase()
+
+      if (!result.success) {
+        showToast({
+          type: 'error',
+          title: 'Migratsiya amalga oshmadi',
+          description: result.message,
+        })
+        return
+      }
+
+      const nextSettings = await readSettings()
+      setSettings(nextSettings)
+      setErrors({})
+      setPendingMigration(false)
+      showToast({
+        type: 'success',
+        title: 'localStorage ma\'lumotlari ko\'chirildi',
+        description: 'Supabase jadvallari yangilandi.',
+      })
+    } finally {
+      setIsMigrating(false)
+    }
   }
 
   return (
@@ -279,14 +372,21 @@ export function SettingsPage() {
 
           <button
             className="mt-6 inline-flex h-12 items-center justify-center gap-2 rounded-2xl bg-slate-950 px-5 text-sm font-semibold text-white transition hover:bg-emerald-700"
+            disabled={isSaving}
             type="submit"
           >
             <Save className="h-4 w-4" />
-            Saqlash
+            {isSaving ? 'Saqlanmoqda...' : 'Saqlash'}
           </button>
         </form>
 
         <div className="space-y-4">
+          {settingsResource.error ? (
+            <div className="rounded-[32px] border border-rose-200 bg-rose-50 px-5 py-4 text-sm text-rose-700">
+              {settingsResource.error}
+            </div>
+          ) : null}
+
           <div className="rounded-[32px] border border-white/70 bg-white/85 p-6 shadow-[0_30px_70px_-40px_rgba(15,23,42,0.35)]">
             <div className="flex h-14 w-14 items-center justify-center rounded-3xl bg-emerald-50 text-emerald-700">
               <Building2 className="h-6 w-6" />
@@ -321,11 +421,12 @@ export function SettingsPage() {
             <div className="mt-5 grid gap-3 sm:grid-cols-2">
               <button
                 className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl bg-slate-950 px-5 text-sm font-semibold text-white transition hover:bg-emerald-700"
+                disabled={isExporting}
                 onClick={handleExport}
                 type="button"
               >
                 <Download className="h-4 w-4" />
-                Eksport
+                {isExporting ? 'Eksport...' : 'Eksport'}
               </button>
 
               <button
@@ -350,6 +451,23 @@ export function SettingsPage() {
               Import joriy ma'lumotni almashtiradi.
             </p>
           </div>
+
+          <div className="rounded-[32px] border border-white/70 bg-white/85 p-6 shadow-[0_30px_70px_-40px_rgba(15,23,42,0.35)]">
+            <p className="text-sm font-semibold text-slate-900">Legacy migratsiya</p>
+            <p className="mt-2 text-sm leading-6 text-slate-500">
+              Brauzer localStorage ichidagi eski yozuvlarni Supabase jadvallariga ko'chiradi.
+            </p>
+
+            <button
+              className="mt-5 inline-flex h-12 items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-5 text-sm font-semibold text-slate-700 transition hover:border-emerald-200 hover:bg-emerald-50 hover:text-emerald-700"
+              disabled={isMigrating}
+              onClick={() => setPendingMigration(true)}
+              type="button"
+            >
+              <Upload className="h-4 w-4" />
+              {isMigrating ? 'Ko\'chirilmoqda...' : 'localStorage -> Supabase'}
+            </button>
+          </div>
         </div>
       </div>
 
@@ -365,6 +483,16 @@ export function SettingsPage() {
         onConfirm={confirmRestore}
         open={Boolean(pendingRestore)}
         title="JSON tiklash"
+      />
+
+      <ConfirmDialog
+        cancelLabel="Bekor qilish"
+        confirmLabel="Ko'chirish"
+        description="Brauzer localStorage ma'lumotlari Supabase jadvallari bilan almashtiriladi."
+        onCancel={() => setPendingMigration(false)}
+        onConfirm={confirmMigration}
+        open={pendingMigration}
+        title="Legacy ma'lumotlarni ko'chirish"
       />
     </div>
   )

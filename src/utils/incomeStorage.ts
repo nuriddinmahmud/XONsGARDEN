@@ -1,51 +1,39 @@
-import { STORAGE_KEYS } from '../constants/storageKeys'
 import type { IncomeRecord } from '../types/income'
-import { readStorage, writeStorage } from './localStorage'
+import {
+  deleteIncomeRecord as deleteIncomeDatabaseRecord,
+  readIncomeRecords as readIncomeDatabaseRecords,
+  saveIncomeRecord as saveIncomeDatabaseRecord,
+  writeIncomeRecords as writeIncomeDatabaseRecords,
+} from '../lib/database'
+import { STORAGE_KEYS, STORAGE_SYNC_EVENT } from '../constants/storageKeys'
 
-function normalizeOptionalText(value: unknown) {
-  if (typeof value !== 'string') {
-    return undefined
+function emitStorageSync() {
+  if (typeof window === 'undefined') {
+    return
   }
 
-  const trimmed = value.trim()
-  return trimmed || undefined
-}
-
-function isIncomeRecord(value: unknown): value is IncomeRecord {
-  if (typeof value !== 'object' || value === null || Array.isArray(value)) {
-    return false
-  }
-
-  const record = value as Record<string, unknown>
-
-  return (
-    typeof record.id === 'string' &&
-    typeof record.amount === 'number' &&
-    Number.isFinite(record.amount) &&
-    typeof record.reason === 'string' &&
-    typeof record.date === 'string' &&
-    (record.sourceLocation === undefined || typeof record.sourceLocation === 'string') &&
-    (record.comment === undefined || typeof record.comment === 'string') &&
-    (record.createdAt === undefined || typeof record.createdAt === 'string')
+  window.dispatchEvent(
+    new CustomEvent(STORAGE_SYNC_EVENT, { detail: { key: STORAGE_KEYS.xonsgarden_income } }),
   )
 }
 
-function normalizeIncomeRecord(record: IncomeRecord): IncomeRecord {
-  return {
-    ...record,
-    reason: record.reason.trim(),
-    sourceLocation: normalizeOptionalText(record.sourceLocation),
-    comment: normalizeOptionalText(record.comment),
-    createdAt: typeof record.createdAt === 'string' ? record.createdAt : undefined,
-  }
+export async function readIncomeRecords() {
+  return readIncomeDatabaseRecords()
 }
 
-export function readIncomeRecords() {
-  const stored = readStorage<unknown[]>(STORAGE_KEYS.xonsgarden_income, [])
-
-  return stored.filter(isIncomeRecord).map(normalizeIncomeRecord)
+export async function writeIncomeRecords(records: IncomeRecord[]) {
+  const value = await writeIncomeDatabaseRecords(records)
+  emitStorageSync()
+  return value
 }
 
-export function writeIncomeRecords(records: IncomeRecord[]) {
-  writeStorage(STORAGE_KEYS.xonsgarden_income, records.map(normalizeIncomeRecord))
+export async function saveIncomeRecord(record: IncomeRecord) {
+  const value = await saveIncomeDatabaseRecord(record)
+  emitStorageSync()
+  return value
+}
+
+export async function deleteIncomeRecord(id: string) {
+  await deleteIncomeDatabaseRecord(id)
+  emitStorageSync()
 }
